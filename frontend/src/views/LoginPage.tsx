@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/auth";
-import { Input, Button, Label } from "../ui/components";
+
+const BG_IMAGES = [
+  "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1920&q=80",
+];
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -10,6 +17,21 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [imgIdx, setImgIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setImgIdx((p) => (p + 1) % BG_IMAGES.length);
+    }, 6000);
+  }, []);
+
+  useEffect(() => {
+    startTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [startTimer]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,33 +48,181 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-6 py-12">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-white">Willkommen zurück</h1>
-        <p className="mt-1 text-sm text-surface-400">Melde dich an, um deine Events zu verwalten</p>
+    <div className="relative flex min-h-[calc(100vh-64px)] items-center justify-center px-4 py-12">
+      {/* ══════════ Fullscreen rotating background ══════════ */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {BG_IMAGES.map((src, i) => (
+          <div
+            key={src}
+            className="absolute inset-0 transition-opacity duration-[2000ms] ease-in-out"
+            style={{ opacity: i === imgIdx ? 1 : 0 }}
+          >
+            <img
+              src={src}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{
+                transform: i === imgIdx ? "scale(1.05)" : "scale(1)",
+                transition: "transform 7s ease-out",
+              }}
+            />
+          </div>
+        ))}
+        {/* Dark overlays */}
+        <div className="absolute inset-0 bg-surface-950/80 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/40 to-surface-950/70" />
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6">
-        <div>
-          <Label>E-Mail</Label>
-          <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+
+      {/* ══════════ Centered card ══════════ */}
+      <div className="relative w-full max-w-md">
+        {/* Glass card */}
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.04] p-8 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-10">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500/20 shadow-lg shadow-accent-500/10">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-400">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">Willkommen zurück</h1>
+            <p className="mt-1.5 text-sm text-surface-400">Melde dich an, um fortzufahren</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-surface-400">E-Mail</label>
+              <div className="relative">
+                <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e: any) => setEmail(e.target.value)}
+                  placeholder="deine@email.de"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-11 pr-4 text-sm text-white placeholder-surface-500 outline-none transition-all focus:border-accent-500/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-accent-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-surface-400">Passwort</label>
+              <div className="relative">
+                <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <input
+                  type={showPw ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e: any) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-11 pr-11 text-sm text-white placeholder-surface-500 outline-none transition-all focus:border-accent-500/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-accent-500/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300 transition-colors"
+                >
+                  {showPw ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={busy}
+              className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-accent-500/25 transition-all hover:shadow-accent-500/40 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {busy ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Wird angemeldet...
+                  </>
+                ) : (
+                  <>
+                    Anmelden
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </>
+                )}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
+            <span className="text-[11px] font-medium text-surface-600 uppercase tracking-wider">oder</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
+          </div>
+
+          {/* Register link */}
+          <p className="text-center text-sm text-surface-400">
+            Noch kein Konto?{" "}
+            <Link to="/register" className="font-semibold text-accent-400 hover:text-accent-300 transition-colors">
+              Jetzt registrieren
+            </Link>
+          </p>
         </div>
-        <div>
-          <Label>Passwort</Label>
-          <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        {/* Demo hint */}
+        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-3 text-center backdrop-blur-md">
+          <span className="text-xs text-surface-500">
+            <strong className="text-surface-400">Demo:</strong> demo@veranstalter.de / password123
+          </span>
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <Button type="submit" disabled={busy}>
-          {busy ? "Lade…" : "Einloggen"}
-        </Button>
-      </form>
-      <p className="text-center text-sm text-surface-500">
-        Noch kein Konto?{" "}
-        <Link to="/register" className="text-accent-400 hover:text-accent-300 transition-colors">
-          Registrieren
-        </Link>
-      </p>
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-xs text-surface-400">
-        <strong className="text-surface-300">Demo-Login:</strong> demo@veranstalter.de / password123
+
+        {/* Trust indicators */}
+        <div className="mt-4 flex items-center justify-center gap-6 text-[11px] text-surface-500">
+          <span className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            SSL verschlüsselt
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            DSGVO-konform
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Sicher
+          </span>
+        </div>
+
+        {/* Image dots */}
+        <div className="mt-5 flex justify-center gap-2">
+          {BG_IMAGES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setImgIdx(i); startTimer(); }}
+              className={`rounded-full transition-all duration-500 ${
+                i === imgIdx
+                  ? "h-2 w-6 bg-accent-400 shadow-md shadow-accent-400/30"
+                  : "h-2 w-2 bg-white/20 hover:bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

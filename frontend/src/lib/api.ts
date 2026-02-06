@@ -69,7 +69,18 @@ export type MonitoredUrl = {
   updatedAt: string;
 };
 
-export type EventCategory = "KONZERT" | "THEATER" | "LESUNG" | "COMEDY" | "SONSTIGES";
+export type EventCategory =
+  | "KONZERT" | "FESTIVAL" | "MUSICAL" | "OPER" | "KABARETT" | "OPEN_MIC" | "DJ_EVENT"
+  | "THEATER" | "COMEDY" | "TANZ" | "ZAUBERSHOW"
+  | "AUSSTELLUNG" | "LESUNG" | "FILM" | "FOTOGRAFIE" | "MUSEUM"
+  | "FLOHMARKT" | "WOCHENMARKT" | "WEIHNACHTSMARKT" | "MESSE" | "FOOD_FESTIVAL"
+  | "SPORT" | "LAUF" | "TURNIER" | "YOGA" | "WANDERUNG"
+  | "KINDERTHEATER" | "FAMILIENTAG" | "KINDER_WORKSHOP"
+  | "WEINPROBE" | "CRAFT_BEER" | "KOCHKURS" | "FOOD_TRUCK" | "KULINARISCHE_TOUR"
+  | "WORKSHOP" | "SEMINAR" | "KONFERENZ" | "NETWORKING" | "VORTRAG"
+  | "CLUBNACHT" | "KARAOKE" | "PARTY"
+  | "KARNEVAL" | "OKTOBERFEST" | "SILVESTER" | "STADTFEST" | "STRASSENFEST"
+  | "SONSTIGES";
 
 export type EventListItem = {
   id: string;
@@ -86,6 +97,7 @@ export type EventListItem = {
   tags: string[];
   community?: string | null;
   isFeatured: boolean;
+  heroFocusY?: number;
   isPromoted?: boolean;
   organizer: { id: string; name: string };
 };
@@ -139,6 +151,44 @@ export type ArtistReview = {
   comment: string;
   createdAt: string;
   user: { id: string; name: string };
+};
+
+export type DashboardEventStat = {
+  id: string;
+  title: string;
+  category: EventCategory;
+  startsAt: string;
+  city: string;
+  imageUrl?: string | null;
+  isFeatured: boolean;
+  isPromoted: boolean;
+  hasTicketUrl: boolean;
+  views: number;
+  ticketClicks: number;
+  conversionRate: number;
+};
+
+export type DashboardSummary = {
+  totalEvents: number;
+  activeEvents: number;
+  pastEvents: number;
+  totalViews: number;
+  totalClicks: number;
+  views7d: number;
+  clicks7d: number;
+  conversionRate: number;
+};
+
+export type DashboardChartPoint = {
+  date: string;
+  views: number;
+  clicks: number;
+};
+
+export type DashboardStats = {
+  summary: DashboardSummary;
+  chartData: DashboardChartPoint[];
+  events: DashboardEventStat[];
 };
 
 export type ScrapedEvent = {
@@ -210,7 +260,25 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data)
       }),
-    remove: (id: string) => request<void>(`/api/events/${id}`, { method: "DELETE" })
+    remove: (id: string) => request<void>(`/api/events/${id}`, { method: "DELETE" }),
+    toggleFeatured: (id: string) => request<{ isFeatured: boolean }>(`/api/events/${id}/featured`, { method: "PATCH" }),
+    trackView: (id: string) => request<{ ok: boolean }>(`/api/events/${id}/track-view`, { method: "POST" }),
+    trackTicketClick: (id: string) => request<{ ok: boolean }>(`/api/events/${id}/track-ticket-click`, { method: "POST" }),
+    myStats: () => request<DashboardStats>("/api/events/my-stats"),
+    uploadImage: async (file: File): Promise<{ imageUrl: string }> => {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch(`${API_URL}/api/events/upload-image`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload fehlgeschlagen");
+      return res.json();
+    },
+    favorites: () => request<{ events: EventListItem[] }>("/api/events/favorites"),
+    favoriteIds: () => request<{ ids: string[] }>("/api/events/favorites/ids"),
+    toggleFavorite: (id: string) => request<{ favorited: boolean }>(`/api/events/favorites/${id}`, { method: "POST" }),
   },
   scrape: {
     trigger: (url: string) =>

@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
+import { FavoriteButton } from "../ui/FavoriteButton";
+import { useAuth } from "../state/auth";
 
 const CATEGORY_ICONS: Record<string, string> = {
   KONZERT: "🎵",
@@ -19,7 +21,7 @@ const CATEGORIES = [
   { label: "Sonstiges", cat: "SONSTIGES", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=600&q=80" },
 ];
 
-function EventCard({ ev, size = "normal" }: { ev: EventListItem; size?: "normal" | "compact" }) {
+function EventCard({ ev, size = "normal", isFavorited = false, onToggle }: { ev: EventListItem; size?: "normal" | "compact"; isFavorited?: boolean; onToggle?: (eventId: string, favorited: boolean) => void }) {
   if (size === "compact") {
     return (
       <Link
@@ -89,11 +91,14 @@ function EventCard({ ev, size = "normal" }: { ev: EventListItem; size?: "normal"
             </span>
           )}
         </div>
-        {ev.price && (
-          <span className="absolute right-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
-            {ev.price}
-          </span>
-        )}
+        <div className="absolute right-3 top-3 flex items-center gap-2">
+          {ev.price && (
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+              {ev.price}
+            </span>
+          )}
+          {onToggle && <FavoriteButton eventId={ev.id} isFavorited={isFavorited} onToggle={onToggle} />}
+        </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center gap-2 text-[11px] font-medium text-white/70">
@@ -177,6 +182,161 @@ function formatRelativeDate(iso: string): string {
     return date.toLocaleDateString("de-DE", { weekday: "long" });
   }
   return formatDate(iso);
+}
+
+const HERO_INTERVAL = 6000;
+const FALLBACK_IMG = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1920&q=60";
+
+function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate }: {
+  featured: EventListItem[];
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+  onSearch: (e: React.FormEvent) => void;
+  navigate: (path: string) => void;
+}) {
+  const heroImages = featured.filter((e) => e.imageUrl).slice(0, 6);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (heroImages.length <= 1) return;
+    timerRef.current = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % heroImages.length);
+    }, HERO_INTERVAL);
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    resetTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [resetTimer]);
+
+  const activeEvent = heroImages[activeIdx];
+
+  return (
+    <section className="relative min-h-[520px] overflow-hidden sm:min-h-[600px] lg:min-h-[680px]">
+      {/* Background images with crossfade + Ken Burns */}
+      {heroImages.length > 0 ? (
+        heroImages.map((ev, i) => (
+          <div
+            key={ev.id}
+            className="absolute inset-0 bg-cover bg-no-repeat transition-opacity duration-[1500ms] ease-in-out"
+            style={{
+              backgroundImage: `url(${ev.imageUrl})`,
+              backgroundPosition: `center ${(ev as any).heroFocusY ?? 50}%`,
+              opacity: i === activeIdx ? 1 : 0,
+              animation: i === activeIdx ? "heroKenBurns 12s ease-in-out infinite alternate" : "none",
+            }}
+          />
+        ))
+      ) : (
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-[0.15]"
+          style={{ backgroundImage: `url(${FALLBACK_IMG})` }}
+        />
+      )}
+
+      {/* Dark overlays */}
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,10,10,0.65) 0%, rgba(10,10,10,0.35) 30%, rgba(10,10,10,0.6) 55%, rgba(10,10,10,0.92) 75%, #0a0a0a 90%)" }} />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+      {/* Extra bottom fade for seamless transition */}
+      <div className="absolute inset-x-0 bottom-0 h-32" style={{ background: "linear-gradient(to bottom, transparent, #0a0a0a)" }} />
+      <div className="absolute -left-40 top-20 h-80 w-80 rounded-full bg-accent-500/8 blur-[120px]" />
+      <div className="absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-neon-purple/8 blur-[120px]" />
+
+      {/* Content */}
+      <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-28 lg:pt-36">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-1.5 text-xs font-medium text-surface-300 backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse-slow" />
+            Neue Events in deiner Nähe
+          </div>
+
+          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl drop-shadow-lg">
+            Erlebe deine Stadt
+            <span className="block text-gradient">wie nie zuvor</span>
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-xl text-base text-surface-300 sm:text-lg drop-shadow">
+            Konzerte, Theater, Lesungen, Comedy und mehr – entdecke Veranstaltungen in deiner Nähe.
+          </p>
+
+          {/* Search Bar */}
+          <form onSubmit={onSearch} className="mx-auto mt-10 max-w-2xl">
+            <div className="relative flex items-center">
+              <div className="pointer-events-none absolute left-4 text-surface-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Suche nach Events, Künstlern, Orten..."
+                className="w-full rounded-full border border-white/15 bg-black/30 py-4 pl-12 pr-36 text-sm text-white placeholder-surface-500 outline-none backdrop-blur-xl transition-all focus:border-accent-500/50 focus:bg-black/40 focus:ring-1 focus:ring-accent-500/30"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 rounded-full bg-accent-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400 hover:shadow-accent-500/40"
+              >
+                Suchen
+              </button>
+            </div>
+
+            {/* Quick search suggestions */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
+              <span className="text-surface-500">Beliebt:</span>
+              {["Konzert", "Comedy", "Theater", "Open Air", "DJ"].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => navigate(`/events?q=${encodeURIComponent(term)}`)}
+                  className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1 text-surface-400 backdrop-blur-sm transition-all hover:border-white/15 hover:bg-black/30 hover:text-white"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </form>
+        </div>
+
+        {/* Active event info badge */}
+        {activeEvent && (
+          <div className="mx-auto mt-10 flex max-w-2xl items-center justify-center">
+            <Link
+              to={`/events/${activeEvent.id}`}
+              className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md transition-all hover:bg-black/40 hover:border-white/20"
+            >
+              <span className="text-[11px] font-medium text-surface-400">Jetzt im Fokus</span>
+              <span className="h-3 w-px bg-white/10" />
+              <span className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-xs">{activeEvent.title}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-400 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
+            </Link>
+          </div>
+        )}
+
+        {/* Slide indicators */}
+        {heroImages.length > 1 && (
+          <div className="mx-auto mt-6 flex items-center justify-center gap-1.5">
+            {heroImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setActiveIdx(i); resetTimer(); }}
+                className={`h-1 rounded-full transition-all duration-300 ${i === activeIdx ? "w-6 bg-accent-500" : "w-1.5 bg-white/20 hover:bg-white/40"}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Ken Burns keyframes */}
+      <style>{`
+        @keyframes heroKenBurns {
+          0% { transform: scale(1) translate(0, 0); }
+          100% { transform: scale(1.08) translate(-1%, -1%); }
+        }
+      `}</style>
+    </section>
+  );
 }
 
 const COMMUNITY_ITEMS = [
@@ -290,12 +450,14 @@ function CommunityCarousel() {
 }
 
 export function HomePage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [featured, setFeatured] = useState<EventListItem[]>([]);
   const [upcoming, setUpcoming] = useState<EventListItem[]>([]);
   const [weekendEvents, setWeekendEvents] = useState<EventListItem[]>([]);
   const [cities, setCities] = useState<{ name: string; count: number }[]>([]);
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     api.events.featured().then((r) => setFeatured(r.events)).catch(() => {});
@@ -316,9 +478,19 @@ export function HomePage() {
       setCities(cityList);
     }).catch(() => {});
 
+    if (user) api.events.favoriteIds().then((r) => setFavIds(new Set(r.ids))).catch(() => {});
+
     const { from, to } = getWeekendRange();
     api.events.list({ from, to }).then((r) => setWeekendEvents(r.events.slice(0, 6))).catch(() => {});
   }, []);
+
+  function handleFavToggle(eventId: string, favorited: boolean) {
+    setFavIds((prev) => {
+      const next = new Set(prev);
+      if (favorited) next.add(eventId); else next.delete(eventId);
+      return next;
+    });
+  }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -330,68 +502,7 @@ export function HomePage() {
   return (
     <div>
       {/* ═══════════════════ HERO ═══════════════════ */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-mesh" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1920&q=60')] bg-cover bg-center opacity-[0.07]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-950" />
-        <div className="absolute -left-40 top-20 h-80 w-80 rounded-full bg-accent-500/10 blur-[120px]" />
-        <div className="absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-neon-purple/10 blur-[120px]" />
-
-        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-28 lg:pt-36">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium text-surface-300 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse-slow" />
-              Neue Events in deiner Nähe
-            </div>
-
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
-              Erlebe deine Stadt
-              <span className="block text-gradient">wie nie zuvor</span>
-            </h1>
-
-            <p className="mx-auto mt-6 max-w-xl text-base text-surface-400 sm:text-lg">
-              Konzerte, Theater, Lesungen, Comedy und mehr – entdecke Veranstaltungen in deiner Nähe.
-            </p>
-
-            {/* ── Search Bar ── */}
-            <form onSubmit={handleSearch} className="mx-auto mt-10 max-w-2xl">
-              <div className="relative flex items-center">
-                <div className="pointer-events-none absolute left-4 text-surface-500">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                </div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Suche nach Events, Künstlern, Orten..."
-                  className="w-full rounded-full border border-white/10 bg-white/5 py-4 pl-12 pr-36 text-sm text-white placeholder-surface-500 outline-none backdrop-blur-xl transition-all focus:border-accent-500/50 focus:bg-white/[0.08] focus:ring-1 focus:ring-accent-500/30"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 rounded-full bg-accent-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400 hover:shadow-accent-500/40"
-                >
-                  Suchen
-                </button>
-              </div>
-
-              {/* Quick search suggestions */}
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
-                <span className="text-surface-600">Beliebt:</span>
-                {["Konzert", "Comedy", "Theater", "Open Air", "DJ"].map((term) => (
-                  <button
-                    key={term}
-                    type="button"
-                    onClick={() => navigate(`/events?q=${encodeURIComponent(term)}`)}
-                    className="rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-surface-400 transition-all hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
-                  >
-                    {term}
-                  </button>
-                ))}
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
+      <HeroSection featured={featured} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} navigate={navigate} />
 
       {/* ═══════════════════ COMMUNITIES ═══════════════════ */}
       <CommunityCarousel />
@@ -423,7 +534,7 @@ export function HomePage() {
           <SectionHeader title="Highlights" subtitle="Handverlesene Events für dich" linkTo="/events" linkLabel="Alle Events" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((ev) => (
-              <EventCard key={ev.id} ev={ev} />
+              <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
             ))}
           </div>
         </section>
@@ -441,7 +552,7 @@ export function HomePage() {
                   <div className="absolute -left-1 top-3 z-10 rounded-r-full bg-accent-500/90 px-3 py-0.5 text-[10px] font-bold text-white shadow-lg shadow-accent-500/20">
                     {formatRelativeDate(ev.startsAt)}
                   </div>
-                  <EventCard ev={ev} size="compact" />
+                  <EventCard ev={ev} size="compact" isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
                 </div>
               ))}
             </div>
@@ -460,7 +571,7 @@ export function HomePage() {
           />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {weekendEvents.map((ev) => (
-              <EventCard key={ev.id} ev={ev} />
+              <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
             ))}
           </div>
         </section>

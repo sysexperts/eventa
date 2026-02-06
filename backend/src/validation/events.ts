@@ -1,10 +1,16 @@
 import { z } from "zod";
 
 export const eventCategorySchema = z.enum([
-  "KONZERT",
-  "THEATER",
-  "LESUNG",
-  "COMEDY",
+  "KONZERT", "FESTIVAL", "MUSICAL", "OPER", "KABARETT", "OPEN_MIC", "DJ_EVENT",
+  "THEATER", "COMEDY", "TANZ", "ZAUBERSHOW",
+  "AUSSTELLUNG", "LESUNG", "FILM", "FOTOGRAFIE", "MUSEUM",
+  "FLOHMARKT", "WOCHENMARKT", "WEIHNACHTSMARKT", "MESSE", "FOOD_FESTIVAL",
+  "SPORT", "LAUF", "TURNIER", "YOGA", "WANDERUNG",
+  "KINDERTHEATER", "FAMILIENTAG", "KINDER_WORKSHOP",
+  "WEINPROBE", "CRAFT_BEER", "KOCHKURS", "FOOD_TRUCK", "KULINARISCHE_TOUR",
+  "WORKSHOP", "SEMINAR", "KONFERENZ", "NETWORKING", "VORTRAG",
+  "CLUBNACHT", "KARAOKE", "PARTY",
+  "KARNEVAL", "OKTOBERFEST", "SILVESTER", "STADTFEST", "STRASSENFEST",
   "SONSTIGES"
 ]);
 
@@ -23,7 +29,8 @@ export const createEventSchema = z.object({
   price: z.string().max(50).optional().or(z.literal("").transform(() => undefined)),
   tags: z.array(z.string().max(30)).max(10).optional().default([]),
   community: z.string().max(50).optional().or(z.literal("").transform(() => undefined)),
-  isFeatured: z.boolean().optional().default(false)
+  isFeatured: z.boolean().optional().default(false),
+  heroFocusY: z.number().int().min(0).max(100).optional().default(50)
 });
 
 export const updateEventSchema = createEventSchema.partial();

@@ -5,7 +5,19 @@ import { useAuth } from "../state/auth";
 import { Input, Textarea, Button, Label } from "../ui/components";
 import { ArtistSelect } from "../ui/ArtistSelect";
 
-const CATEGORIES = ["KONZERT", "THEATER", "LESUNG", "COMEDY", "SONSTIGES"];
+const CATEGORIES = [
+  "KONZERT", "FESTIVAL", "MUSICAL", "OPER", "KABARETT", "OPEN_MIC", "DJ_EVENT",
+  "THEATER", "COMEDY", "TANZ", "ZAUBERSHOW",
+  "AUSSTELLUNG", "LESUNG", "FILM", "FOTOGRAFIE", "MUSEUM",
+  "FLOHMARKT", "WOCHENMARKT", "WEIHNACHTSMARKT", "MESSE", "FOOD_FESTIVAL",
+  "SPORT", "LAUF", "TURNIER", "YOGA", "WANDERUNG",
+  "KINDERTHEATER", "FAMILIENTAG", "KINDER_WORKSHOP",
+  "WEINPROBE", "CRAFT_BEER", "KOCHKURS", "FOOD_TRUCK", "KULINARISCHE_TOUR",
+  "WORKSHOP", "SEMINAR", "KONFERENZ", "NETWORKING", "VORTRAG",
+  "CLUBNACHT", "KARAOKE", "PARTY",
+  "KARNEVAL", "OKTOBERFEST", "SILVESTER", "STADTFEST", "STRASSENFEST",
+  "SONSTIGES",
+];
 
 const COMMUNITIES = [
   { value: "", label: "Keine Community", flag: "" },
@@ -37,6 +49,10 @@ export function EventFormPage({ mode }: Props) {
   const [error, setError] = useState("");
   const [promote, setPromote] = useState(false);
   const [alreadyPromoted, setAlreadyPromoted] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [togglingFeatured, setTogglingFeatured] = useState(false);
+  const [heroFocusY, setHeroFocusY] = useState(50);
+  const [savingFocus, setSavingFocus] = useState(false);
   const [selectedArtistIds, setSelectedArtistIds] = useState<string[]>([]);
   const [allArtists, setAllArtists] = useState<Artist[]>([]);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -117,6 +133,8 @@ export function EventFormPage({ mode }: Props) {
           });
           setProfileLoaded(true);
           if ((e as any).isPromoted) setAlreadyPromoted(true);
+          if ((e as any).isFeatured) setIsFeatured(true);
+          if ((e as any).heroFocusY != null) setHeroFocusY((e as any).heroFocusY);
           if ((e as any).artists) setSelectedArtistIds((e as any).artists.map((a: any) => a.id));
         } catch {
           setError("Event konnte nicht geladen werden.");
@@ -145,6 +163,7 @@ export function EventFormPage({ mode }: Props) {
       ticketUrl: form.ticketUrl || undefined,
       price: form.price || undefined,
       tags,
+      heroFocusY,
     };
 
     try {
@@ -239,8 +258,37 @@ export function EventFormPage({ mode }: Props) {
           </div>
         </div>
         <div>
-          <Label>Bild-URL (optional)</Label>
-          <Input type="url" placeholder="https://…" value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} />
+          <Label>Event-Bild (optional)</Label>
+          <div className="space-y-2">
+            {form.imageUrl && (
+              <div className="relative w-full overflow-hidden rounded-lg border border-white/10" style={{ aspectRatio: "16/9", maxHeight: 200 }}>
+                <img src={form.imageUrl} alt="Vorschau" className="h-full w-full object-cover" onError={(e: any) => { e.target.style.display = "none"; }} />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input type="url" placeholder="https://… oder Bild hochladen →" value={form.imageUrl} onChange={(e: any) => set("imageUrl", e.target.value)} className="flex-1" />
+              <label className="shrink-0 cursor-pointer rounded-lg bg-accent-500/10 px-4 py-2 text-sm font-medium text-accent-400 hover:bg-accent-500/20 transition-colors flex items-center gap-1.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Hochladen
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={async (e: any) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const res = await api.events.uploadImage(file);
+                      set("imageUrl", res.imageUrl);
+                    } catch {
+                      alert("Bild-Upload fehlgeschlagen.");
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </div>
         </div>
         <div>
           <Label>Ticket-URL (optional)</Label>
@@ -285,6 +333,66 @@ export function EventFormPage({ mode }: Props) {
               <div className="text-xs text-amber-400/70">Promoted Events werden zuerst angezeigt. Du hast {user.promotionTokens} Token{user.promotionTokens !== 1 ? "s" : ""}.</div>
             </div>
           </label>
+        )}
+
+        {/* Featured Toggle (Admin only, edit mode) */}
+        {user?.isAdmin && mode === "edit" && id && (
+          <div className="space-y-4">
+            <button
+              type="button"
+              disabled={togglingFeatured}
+              onClick={async () => {
+                setTogglingFeatured(true);
+                try {
+                  const res = await api.events.toggleFeatured(id);
+                  setIsFeatured(res.isFeatured);
+                } catch { /* ignore */ }
+                setTogglingFeatured(false);
+              }}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all w-full ${
+                isFeatured
+                  ? "border border-neon-green/30 bg-neon-green/15 text-neon-green hover:bg-neon-green/25"
+                  : "border border-white/10 bg-white/5 text-surface-400 hover:bg-white/10 hover:text-white"
+              } disabled:opacity-50`}
+            >
+              {togglingFeatured ? "..." : isFeatured ? "★ Featured (aktiv) – wird im Hero-Slider angezeigt" : "☆ Als Featured markieren (Hero-Slider)"}
+            </button>
+
+            {/* Hero Focal Point Picker */}
+            {isFeatured && form.imageUrl && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-surface-400">Hero-Bildausschnitt (Fokuspunkt)</div>
+                <div className="relative overflow-hidden rounded-lg border border-white/10" style={{ aspectRatio: "16/9" }}>
+                  <div
+                    className="absolute inset-0 bg-cover bg-no-repeat"
+                    style={{
+                      backgroundImage: `url(${form.imageUrl})`,
+                      backgroundPosition: `center ${heroFocusY}%`,
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-2 flex justify-center">
+                    <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      {heroFocusY === 0 ? "Oben" : heroFocusY === 50 ? "Mitte" : heroFocusY === 100 ? "Unten" : `${heroFocusY}%`}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={heroFocusY}
+                  onChange={(e) => setHeroFocusY(Number(e.target.value))}
+                  className="w-full accent-accent-500"
+                />
+                <div className="flex justify-between text-[10px] text-surface-500">
+                  <span>Oben</span>
+                  <span>Mitte</span>
+                  <span>Unten</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}

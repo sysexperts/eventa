@@ -8,10 +8,74 @@ datasource db {
 }
 
 enum EventCategory {
+  // Musik & Bühne
   KONZERT
+  FESTIVAL
+  MUSICAL
+  OPER
+  KABARETT
+  OPEN_MIC
+  DJ_EVENT
+
+  // Bühne & Darstellung
   THEATER
-  LESUNG
   COMEDY
+  TANZ
+  ZAUBERSHOW
+
+  // Kunst & Kultur
+  AUSSTELLUNG
+  LESUNG
+  FILM
+  FOTOGRAFIE
+  MUSEUM
+
+  // Märkte & Messen
+  FLOHMARKT
+  WOCHENMARKT
+  WEIHNACHTSMARKT
+  MESSE
+  FOOD_FESTIVAL
+
+  // Sport & Fitness
+  SPORT
+  LAUF
+  TURNIER
+  YOGA
+  WANDERUNG
+
+  // Familie & Kinder
+  KINDERTHEATER
+  FAMILIENTAG
+  KINDER_WORKSHOP
+
+  // Essen & Trinken
+  WEINPROBE
+  CRAFT_BEER
+  KOCHKURS
+  FOOD_TRUCK
+  KULINARISCHE_TOUR
+
+  // Bildung & Networking
+  WORKSHOP
+  SEMINAR
+  KONFERENZ
+  NETWORKING
+  VORTRAG
+
+  // Nachtleben & Party
+  CLUBNACHT
+  KARAOKE
+  PARTY
+
+  // Saisonales & Feste
+  KARNEVAL
+  OKTOBERFEST
+  SILVESTER
+  STADTFEST
+  STRASSENFEST
+
+  // Sonstiges
   SONSTIGES
 }
 
@@ -43,6 +107,7 @@ model User {
   monitoredUrls  MonitoredUrl[]
   artistReviews  ArtistReview[]
   artistFollows  ArtistFollow[]
+  favorites      EventFavorite[]
 }
 
 model Event {
@@ -62,13 +127,17 @@ model Event {
   tags             String[]  @default([])
   community        String?
   isFeatured       Boolean   @default(false)
+  heroFocusY       Int       @default(50)
   isPromoted       Boolean   @default(false)
   promotedAt       DateTime?
 
   organizerId String
   organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
-  artists     EventArtist[]
+  artists      EventArtist[]
+  views        EventView[]
+  ticketClicks EventTicketClick[]
+  favorites    EventFavorite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,4 +267,37 @@ model ScrapedEvent {
 
   @@index([organizerId])
   @@index([status])
+}
+
+model EventView {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([createdAt])
+}
+
+model EventTicketClick {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([createdAt])
+}
+
+model EventFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api, type EventDetail, type SimilarEvent } from "../lib/api";
+import { api, type EventDetail, type SimilarEvent, type User } from "../lib/api";
 import { categoryLabel, formatDateTime, formatDate } from "../lib/format";
+import { FavoriteButton } from "../ui/FavoriteButton";
 
 function Countdown({ date }: { date: string }) {
   const [diff, setDiff] = useState(() => new Date(date).getTime() - Date.now());
@@ -97,6 +98,9 @@ export function EventDetailPage() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [similar, setSimilar] = useState<SimilarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [togglingFeatured, setTogglingFeatured] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -105,6 +109,8 @@ export function EventDetailPage() {
         const res = await api.events.get(id);
         setEvent(res.event);
         setSimilar(res.similar);
+        // Track page view
+        api.events.trackView(id).catch(() => {});
       } catch {
         setEvent(null);
       } finally {
@@ -112,6 +118,23 @@ export function EventDetailPage() {
       }
     })();
   }, [id]);
+
+  useEffect(() => {
+    api.me.get().then((r) => {
+      setUser(r.user);
+      if (id) api.events.favoriteIds().then((f) => setIsFavorited(f.ids.includes(id))).catch(() => {});
+    }).catch(() => {});
+  }, [id]);
+
+  async function handleToggleFeatured() {
+    if (!event || togglingFeatured) return;
+    setTogglingFeatured(true);
+    try {
+      const res = await api.events.toggleFeatured(event.id);
+      setEvent({ ...event, isFeatured: res.isFeatured });
+    } catch { /* ignore */ }
+    setTogglingFeatured(false);
+  }
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32">
@@ -176,12 +199,24 @@ export function EventDetailPage() {
                   {event.price}
                 </span>
               )}
+              <FavoriteButton eventId={event.id} isFavorited={isFavorited} onToggle={(_id, fav) => setIsFavorited(fav)} />
             </div>
 
             {/* Title */}
             <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
               {event.title}
             </h1>
+
+            {/* Admin / Owner: Edit button */}
+            {(user?.isAdmin || user?.id === event.organizer.id) && (
+              <Link
+                to={`/dashboard/events/${event.id}/edit`}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-surface-300 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Bearbeiten
+              </Link>
+            )}
 
             {/* Quick info */}
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-surface-300">
@@ -280,6 +315,7 @@ export function EventDetailPage() {
                     href={event.ticketUrl}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={() => api.events.trackTicketClick(event.id).catch(() => {})}
                     className="flex items-center justify-center gap-2 rounded-xl bg-accent-500 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400 hover:shadow-accent-500/40"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
@@ -324,6 +360,29 @@ export function EventDetailPage() {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </a>
             </InfoCard>
+
+            {/* Admin: Featured Toggle */}
+            {user?.isAdmin && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-surface-400">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-surface-400">Admin</span>
+                </div>
+                <button
+                  onClick={handleToggleFeatured}
+                  disabled={togglingFeatured}
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                    event.isFeatured
+                      ? "bg-neon-green/15 border border-neon-green/30 text-neon-green hover:bg-neon-green/25"
+                      : "bg-white/5 border border-white/10 text-surface-400 hover:bg-white/10 hover:text-white"
+                  } disabled:opacity-50`}
+                >
+                  {togglingFeatured ? "..." : event.isFeatured ? "★ Featured (aktiv)" : "☆ Als Featured markieren"}
+                </button>
+              </div>
+            )}
 
             {/* Organizer */}
             <InfoCard
@@ -395,6 +454,7 @@ export function EventDetailPage() {
               href={event.ticketUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={() => api.events.trackTicketClick(event.id).catch(() => {})}
               className="shrink-0 rounded-xl bg-accent-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25"
             >
               Tickets

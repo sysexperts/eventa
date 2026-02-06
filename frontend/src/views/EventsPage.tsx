@@ -3,13 +3,23 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
 import { Input, Button } from "../ui/components";
+import { FavoriteButton } from "../ui/FavoriteButton";
+import { useAuth } from "../state/auth";
 
 const CATEGORIES = [
   { value: "", label: "Alle", icon: "🔥" },
   { value: "KONZERT", label: "Konzerte", icon: "🎵" },
+  { value: "FESTIVAL", label: "Festivals", icon: "🎪" },
   { value: "THEATER", label: "Theater", icon: "🎭" },
-  { value: "LESUNG", label: "Lesungen", icon: "📖" },
   { value: "COMEDY", label: "Comedy", icon: "😂" },
+  { value: "FLOHMARKT", label: "Flohmärkte", icon: "🛍️" },
+  { value: "SPORT", label: "Sport", icon: "⚽" },
+  { value: "PARTY", label: "Partys", icon: "🎉" },
+  { value: "WORKSHOP", label: "Workshops", icon: "📚" },
+  { value: "AUSSTELLUNG", label: "Ausstellungen", icon: "🎨" },
+  { value: "KINDERTHEATER", label: "Kinder", icon: "👨‍👩‍👧‍�" },
+  { value: "WEINPROBE", label: "Essen & Trinken", icon: "🍷" },
+  { value: "LESUNG", label: "Lesungen", icon: "�" },
   { value: "SONSTIGES", label: "Sonstiges", icon: "✨" },
 ];
 
@@ -34,10 +44,16 @@ const COMMUNITIES = [
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  KONZERT: "🎵",
-  THEATER: "🎭",
-  LESUNG: "📖",
-  COMEDY: "😂",
+  KONZERT: "🎵", FESTIVAL: "🎪", MUSICAL: "🎶", OPER: "🎼", KABARETT: "🎤", OPEN_MIC: "🎙️", DJ_EVENT: "🎧",
+  THEATER: "🎭", COMEDY: "😂", TANZ: "💃", ZAUBERSHOW: "🪄",
+  AUSSTELLUNG: "🎨", LESUNG: "📖", FILM: "🎬", FOTOGRAFIE: "📷", MUSEUM: "🏛️",
+  FLOHMARKT: "🛍️", WOCHENMARKT: "🥕", WEIHNACHTSMARKT: "🎄", MESSE: "🏢", FOOD_FESTIVAL: "🍔",
+  SPORT: "⚽", LAUF: "🏃", TURNIER: "🏆", YOGA: "🧘", WANDERUNG: "🥾",
+  KINDERTHEATER: "🧸", FAMILIENTAG: "👨‍👩‍👧‍👦", KINDER_WORKSHOP: "✂️",
+  WEINPROBE: "🍷", CRAFT_BEER: "🍺", KOCHKURS: "👨‍🍳", FOOD_TRUCK: "🚚", KULINARISCHE_TOUR: "🍽️",
+  WORKSHOP: "📚", SEMINAR: "🎓", KONFERENZ: "💼", NETWORKING: "🤝", VORTRAG: "🗣️",
+  CLUBNACHT: "🌙", KARAOKE: "🎤", PARTY: "🎉",
+  KARNEVAL: "🎭", OKTOBERFEST: "🍻", SILVESTER: "🎆", STADTFEST: "🏘️", STRASSENFEST: "🎊",
   SONSTIGES: "✨",
 };
 
@@ -272,6 +288,7 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
 }
 
 export function EventsPage() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [featured, setFeatured] = useState<EventListItem[]>([]);
@@ -281,6 +298,7 @@ export function EventsPage() {
   const [q, setQ] = useState(searchParams.get("q") || "");
   const [community, setCommunity] = useState(searchParams.get("community") || "");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
 
   async function load() {
     setLoading(true);
@@ -298,6 +316,19 @@ export function EventsPage() {
   useEffect(() => {
     api.events.featured().then((r) => setFeatured(r.events)).catch(() => {});
   }, []);
+
+  // Load favorite IDs
+  useEffect(() => {
+    if (user) api.events.favoriteIds().then((r) => setFavIds(new Set(r.ids))).catch(() => {});
+  }, [user]);
+
+  function handleFavToggle(eventId: string, favorited: boolean) {
+    setFavIds((prev) => {
+      const next = new Set(prev);
+      if (favorited) next.add(eventId); else next.delete(eventId);
+      return next;
+    });
+  }
 
   useEffect(() => {
     load();
@@ -450,11 +481,14 @@ export function EventsPage() {
                         </span>
                       )}
                     </div>
-                    {ev.price && (
-                      <span className="absolute right-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
-                        {ev.price}
-                      </span>
-                    )}
+                    <div className="absolute right-3 top-3 flex items-center gap-2">
+                      {ev.price && (
+                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+                          {ev.price}
+                        </span>
+                      )}
+                      <FavoriteButton eventId={ev.id} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
+                    </div>
 
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <div className="flex items-center gap-2 text-[11px] font-medium text-white/70">
@@ -537,7 +571,8 @@ export function EventsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="hidden items-center sm:flex">
+                  <div className="hidden items-center gap-2 sm:flex">
+                    <FavoriteButton eventId={ev.id} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} size="sm" />
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-surface-600 transition-colors group-hover:text-accent-400"><path d="m9 18 6-6-6-6"/></svg>
                   </div>
                 </Link>

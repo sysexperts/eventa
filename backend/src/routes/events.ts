@@ -1,7 +1,34 @@
 import { Router } from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { prisma } from "../db.js";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { createEventSchema, eventCategorySchema, updateEventSchema } from "../validation/events.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, "..", "..", "uploads", "events");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error("Nur JPG, PNG, WebP oder GIF erlaubt."));
+  },
+});
 
 export const eventsRouter = Router();
 
@@ -67,6 +94,7 @@ eventsRouter.get("/", async (req, res) => {
       tags: true,
       community: true,
       isFeatured: true,
+      heroFocusY: true,
       isPromoted: true,
       createdAt: true,
       updatedAt: true,
@@ -84,7 +112,7 @@ eventsRouter.get("/featured", async (_req, res) => {
   const events = await prisma.event.findMany({
     where: { isFeatured: true, startsAt: { gte: new Date() } },
     orderBy: { startsAt: "asc" },
-    take: 3,
+    take: 6,
     select: {
       id: true,
       title: true,
@@ -100,12 +128,177 @@ eventsRouter.get("/featured", async (_req, res) => {
       tags: true,
       community: true,
       isFeatured: true,
+      heroFocusY: true,
       createdAt: true,
       updatedAt: true,
-      organizer: { select: { id: true, name: true } }
+      organizer: { select: { id: true, name: true } },
+      artists: { select: { artist: { select: { id: true, name: true, slug: true, imageUrl: true, genre: true } } } }
     }
   });
-  res.json({ events });
+  const result = events.map((e: any) => ({ ...e, artists: e.artists.map((ea: any) => ea.artist) }));
+  res.json({ events: result });
+});
+
+// ─── Favorites ───────────────────────────────────────────────────────────────
+
+eventsRouter.get("/favorites", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const favorites = await prisma.eventFavorite.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      event: {
+        select: {
+          id: true, title: true, shortDescription: true, category: true,
+          startsAt: true, endsAt: true, address: true, city: true, country: true,
+          imageUrl: true, ticketUrl: true, price: true, tags: true, community: true,
+          isFeatured: true, isPromoted: true, heroFocusY: true,
+          organizer: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+  res.json({ events: favorites.map((f: any) => f.event) });
+});
+
+eventsRouter.get("/favorites/ids", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const favorites = await prisma.eventFavorite.findMany({
+    where: { userId },
+    select: { eventId: true },
+  });
+  res.json({ ids: favorites.map((f: any) => f.eventId) });
+});
+
+eventsRouter.post("/favorites/:id", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const eventId = req.params.id;
+  const existing = await prisma.eventFavorite.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+  });
+  if (existing) {
+    await prisma.eventFavorite.delete({ where: { id: existing.id } });
+    res.json({ favorited: false });
+  } else {
+    await prisma.eventFavorite.create({ data: { userId, eventId } });
+    res.json({ favorited: true });
+  }
+});
+
+// ─── Event Image Upload ──────────────────────────────────────────────────────
+
+eventsRouter.post("/upload-image", requireAuth, upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Keine Datei hochgeladen." });
+  const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+  const imageUrl = `${backendUrl}/uploads/events/${req.file.filename}`;
+  res.json({ imageUrl });
+});
+
+// ─── Dashboard Stats ─────────────────────────────────────────────────────────
+
+eventsRouter.get("/my-stats", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+
+  const where = currentUser?.isAdmin ? {} : { organizerId: userId };
+
+  const events = await prisma.event.findMany({
+    where,
+    orderBy: { startsAt: "asc" },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+      startsAt: true,
+      city: true,
+      imageUrl: true,
+      isFeatured: true,
+      isPromoted: true,
+      ticketUrl: true,
+      _count: { select: { views: true, ticketClicks: true } },
+    },
+  });
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const eventIds = events.map((e: any) => e.id);
+
+  const dailyViews = eventIds.length > 0
+    ? await prisma.$queryRawUnsafe<{ eventId: string; day: string; count: bigint }[]>(
+        `SELECT "eventId", DATE("createdAt") as day, COUNT(*)::bigint as count
+         FROM "EventView"
+         WHERE "eventId" = ANY($1) AND "createdAt" >= $2
+         GROUP BY "eventId", DATE("createdAt")
+         ORDER BY day`,
+        eventIds,
+        thirtyDaysAgo
+      )
+    : [];
+
+  const dailyClicks = eventIds.length > 0
+    ? await prisma.$queryRawUnsafe<{ eventId: string; day: string; count: bigint }[]>(
+        `SELECT "eventId", DATE("createdAt") as day, COUNT(*)::bigint as count
+         FROM "EventTicketClick"
+         WHERE "eventId" = ANY($1) AND "createdAt" >= $2
+         GROUP BY "eventId", DATE("createdAt")
+         ORDER BY day`,
+        eventIds,
+        thirtyDaysAgo
+      )
+    : [];
+
+  const views7d = eventIds.length > 0
+    ? await prisma.eventView.count({ where: { eventId: { in: eventIds }, createdAt: { gte: sevenDaysAgo } } })
+    : 0;
+  const clicks7d = eventIds.length > 0
+    ? await prisma.eventTicketClick.count({ where: { eventId: { in: eventIds }, createdAt: { gte: sevenDaysAgo } } })
+    : 0;
+
+  const totalViews = events.reduce((sum: number, e: any) => sum + e._count.views, 0);
+  const totalClicks = events.reduce((sum: number, e: any) => sum + e._count.ticketClicks, 0);
+  const activeEvents = events.filter((e: any) => new Date(e.startsAt) >= now).length;
+  const pastEvents = events.filter((e: any) => new Date(e.startsAt) < now).length;
+
+  const eventsWithStats = events.map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    category: e.category,
+    startsAt: e.startsAt,
+    city: e.city,
+    imageUrl: e.imageUrl,
+    isFeatured: e.isFeatured,
+    isPromoted: e.isPromoted,
+    hasTicketUrl: !!e.ticketUrl,
+    views: e._count.views,
+    ticketClicks: e._count.ticketClicks,
+    conversionRate: e._count.views > 0 ? Math.round((e._count.ticketClicks / e._count.views) * 1000) / 10 : 0,
+  }));
+
+  const chartData: { date: string; views: number; clicks: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayViews = dailyViews.filter((v: any) => String(v.day).slice(0, 10) === dateStr).reduce((s: number, v: any) => s + Number(v.count), 0);
+    const dayClicks = dailyClicks.filter((c: any) => String(c.day).slice(0, 10) === dateStr).reduce((s: number, c: any) => s + Number(c.count), 0);
+    chartData.push({ date: dateStr, views: dayViews, clicks: dayClicks });
+  }
+
+  res.json({
+    summary: {
+      totalEvents: events.length,
+      activeEvents,
+      pastEvents,
+      totalViews,
+      totalClicks,
+      views7d,
+      clicks7d,
+      conversionRate: totalViews > 0 ? Math.round((totalClicks / totalViews) * 1000) / 10 : 0,
+    },
+    chartData,
+    events: eventsWithStats,
+  });
 });
 
 // convenience: own events
@@ -130,6 +323,7 @@ eventsRouter.get("/me/list", requireAuth, async (req, res) => {
       tags: true,
       community: true,
       isFeatured: true,
+      heroFocusY: true,
       isPromoted: true,
       createdAt: true,
       updatedAt: true
@@ -161,6 +355,7 @@ eventsRouter.get("/:id", async (req, res) => {
       tags: true,
       community: true,
       isFeatured: true,
+      heroFocusY: true,
       isPromoted: true,
       createdAt: true,
       updatedAt: true,
@@ -240,7 +435,9 @@ eventsRouter.put("/:id", requireAuth, async (req, res) => {
 
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) return res.status(404).json({ error: "Not found" });
-  if (existing.organizerId !== userId) return res.status(403).json({ error: "Forbidden" });
+
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  if (existing.organizerId !== userId && !currentUser?.isAdmin) return res.status(403).json({ error: "Forbidden" });
 
   const data = parsed.data;
 
@@ -280,14 +477,53 @@ eventsRouter.put("/:id", requireAuth, async (req, res) => {
   res.status(204).send();
 });
 
+eventsRouter.patch("/:id/featured", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  if (!user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+
+  const id = req.params.id;
+  const existing = await prisma.event.findUnique({ where: { id }, select: { isFeatured: true } });
+  if (!existing) return res.status(404).json({ error: "Not found" });
+
+  const updated = await prisma.event.update({
+    where: { id },
+    data: { isFeatured: !existing.isFeatured },
+    select: { isFeatured: true }
+  });
+
+  res.json({ isFeatured: updated.isFeatured });
+});
+
 eventsRouter.delete("/:id", requireAuth, async (req, res) => {
   const userId = (req as AuthenticatedRequest).userId;
   const id = req.params.id;
 
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) return res.status(404).json({ error: "Not found" });
-  if (existing.organizerId !== userId) return res.status(403).json({ error: "Forbidden" });
+
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  if (existing.organizerId !== userId && !currentUser?.isAdmin) return res.status(403).json({ error: "Forbidden" });
 
   await prisma.event.delete({ where: { id } });
   res.status(204).send();
 });
+
+// ─── Tracking ────────────────────────────────────────────────────────────────
+
+eventsRouter.post("/:id/track-view", async (req, res) => {
+  const id = req.params.id;
+  const exists = await prisma.event.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return res.status(404).json({ error: "Not found" });
+  await prisma.eventView.create({ data: { eventId: id } });
+  res.json({ ok: true });
+});
+
+eventsRouter.post("/:id/track-ticket-click", async (req, res) => {
+  const id = req.params.id;
+  const exists = await prisma.event.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return res.status(404).json({ error: "Not found" });
+  await prisma.eventTicketClick.create({ data: { eventId: id } });
+  res.json({ ok: true });
+});
+

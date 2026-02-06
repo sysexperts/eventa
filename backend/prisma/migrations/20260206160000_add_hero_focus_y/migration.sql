@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Event" ADD COLUMN "heroFocusY" INTEGER NOT NULL DEFAULT 50;

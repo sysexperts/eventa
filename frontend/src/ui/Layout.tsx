@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/auth";
+import { AuthModal } from "./AuthModal";
+import { MegaMenu } from "./MegaMenu";
 
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
@@ -16,7 +18,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
 }
 
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { user, logout } = useAuth();
+  const { user, logout, openLogin, openRegister } = useAuth();
   const navigate = useNavigate();
 
   if (!open) return null;
@@ -32,8 +34,13 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           <NavLink to="/events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Events</NavLink>
           {user ? (
             <>
-              <NavLink to="/my-events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Meine Events</NavLink>
-              <NavLink to="/dashboard" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Dashboard</NavLink>
+              <NavLink to="/favorites" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Favoriten</NavLink>
+              {(user.isAdmin || user.isPartner || user.website) && (
+                <NavLink to="/my-events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Meine Events</NavLink>
+              )}
+              {(user.isAdmin || user.isPartner || user.website) && (
+                <NavLink to="/dashboard" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Dashboard</NavLink>
+              )}
               <NavLink to="/profile" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Profil</NavLink>
               {user?.isAdmin && (
                 <NavLink to="/admin" onClick={onClose} className="text-base font-medium text-red-400 hover:text-red-300 transition-colors">Admin</NavLink>
@@ -50,10 +57,10 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
             </>
           ) : (
             <>
-              <NavLink to="/login" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Anmelden</NavLink>
-              <NavLink to="/register" onClick={onClose} className="mt-2 block rounded-xl bg-accent-500 px-4 py-3 text-center text-sm font-semibold text-white">
+              <button onClick={() => { onClose(); openLogin(); }} className="text-left text-base font-medium text-surface-300 hover:text-white transition-colors">Anmelden</button>
+              <button onClick={() => { onClose(); openRegister(); }} className="mt-2 block rounded-xl bg-accent-500 px-4 py-3 text-center text-sm font-semibold text-white">
                 Registrieren
-              </NavLink>
+              </button>
             </>
           )}
           <div className="mt-6 border-t border-surface-800 pt-6">
@@ -69,7 +76,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, openLogin, openRegister } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -90,9 +97,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Nav */}
           <nav className="hidden items-center gap-6 lg:flex">
-            <NavItem to="/events" label="Events" />
-            {user && <NavItem to="/my-events" label="Meine Events" />}
-            {user && <NavItem to="/dashboard" label="Dashboard" />}
+            <MegaMenu />
+            {user && <NavItem to="/favorites" label="Favoriten" />}
+            {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/my-events" label="Meine Events" />}
+            {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/dashboard" label="Dashboard" />}
             {user?.isAdmin && <NavItem to="/admin" label="Admin" />}
             {user?.isAdmin && <NavItem to="/admin/artists" label="Künstler" />}
           </nav>
@@ -137,15 +145,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <>
-                  <Link to="/login" className="px-3 py-2 text-sm font-medium text-surface-400 transition-colors hover:text-white">
+                  <button onClick={openLogin} className="px-3 py-2 text-sm font-medium text-surface-400 transition-colors hover:text-white">
                     Anmelden
-                  </Link>
-                  <Link
-                    to="/register"
+                  </button>
+                  <button
+                    onClick={openRegister}
                     className="rounded-full bg-accent-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400 hover:shadow-accent-500/40"
                   >
                     Registrieren
-                  </Link>
+                  </button>
                 </>
               )}
             </div>
@@ -162,6 +170,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
+
+      <AuthModal />
 
       {/* Main */}
       <main className="flex-1">{children}</main>
@@ -187,16 +197,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="mt-3 flex flex-col gap-2">
                 <Link to="/events" className="text-sm text-surface-500 hover:text-white transition-colors">Alle Events</Link>
                 <Link to="/events?category=KONZERT" className="text-sm text-surface-500 hover:text-white transition-colors">Konzerte</Link>
+                <Link to="/events?category=FESTIVAL" className="text-sm text-surface-500 hover:text-white transition-colors">Festivals</Link>
                 <Link to="/events?category=THEATER" className="text-sm text-surface-500 hover:text-white transition-colors">Theater</Link>
                 <Link to="/events?category=COMEDY" className="text-sm text-surface-500 hover:text-white transition-colors">Comedy</Link>
+                <Link to="/events?category=FLOHMARKT" className="text-sm text-surface-500 hover:text-white transition-colors">Flohmärkte</Link>
+                <Link to="/events?category=PARTY" className="text-sm text-surface-500 hover:text-white transition-colors">Partys</Link>
               </div>
             </div>
 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-surface-400">Veranstalter</h4>
               <div className="mt-3 flex flex-col gap-2">
-                <Link to="/register" className="text-sm text-surface-500 hover:text-white transition-colors">Registrieren</Link>
-                <Link to="/login" className="text-sm text-surface-500 hover:text-white transition-colors">Anmelden</Link>
+                <button onClick={openRegister} className="text-left text-sm text-surface-500 hover:text-white transition-colors">Registrieren</button>
+                <button onClick={openLogin} className="text-left text-sm text-surface-500 hover:text-white transition-colors">Anmelden</button>
                 <Link to="/dashboard" className="text-sm text-surface-500 hover:text-white transition-colors">Dashboard</Link>
               </div>
             </div>
