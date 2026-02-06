@@ -218,6 +218,42 @@ export function EventDetailPage() {
               </div>
             )}
 
+            {/* Artists */}
+            {(event as any).artists?.length > 0 && (
+              <div>
+                <h2 className="mb-4 text-lg font-bold text-white">Künstler</h2>
+                <div className="flex flex-wrap gap-3">
+                  {(event as any).artists.map((a: any) => (
+                    <Link key={a.id} to={`/artists/${a.slug}`} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition">
+                      {a.imageUrl ? (
+                        <img src={a.imageUrl} alt={a.name} className="h-12 w-12 rounded-full object-cover border border-white/10" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                          <span className="text-sm font-bold text-indigo-400">{a.name.charAt(0)}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-white">{a.name}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {a.genre && <span className="text-xs text-surface-500">{a.genre}</span>}
+                          {a.genre && a.hometown && <span className="text-xs text-surface-600">·</span>}
+                          {a.hometown && <span className="text-xs text-surface-500">{a.hometown}</span>}
+                        </div>
+                        {(a.spotify || a.instagram || a.youtube || a.website) && (
+                          <div className="flex items-center gap-2 mt-1">
+                            {a.spotify && <a href={a.spotify} target="_blank" rel="noopener noreferrer" className="text-[11px] text-green-400 hover:text-green-300">Spotify</a>}
+                            {a.instagram && <a href={`https://instagram.com/${a.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-pink-400 hover:text-pink-300">Instagram</a>}
+                            {a.youtube && <a href={a.youtube} target="_blank" rel="noopener noreferrer" className="text-[11px] text-red-400 hover:text-red-300">YouTube</a>}
+                            {a.website && <a href={a.website} target="_blank" rel="noopener noreferrer" className="text-[11px] text-surface-400 hover:text-white">Web</a>}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             <div>
               <h2 className="mb-4 text-lg font-bold text-white">Über dieses Event</h2>

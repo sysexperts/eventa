@@ -6,7 +6,12 @@ import { EventDetailPage } from "../views/EventDetailPage";
 import { LoginPage } from "../views/LoginPage";
 import { RegisterPage } from "../views/RegisterPage";
 import { DashboardPage } from "../views/DashboardPage";
+import { MyEventsPage } from "../views/MyEventsPage";
 import { EventFormPage } from "../views/EventFormPage";
+import { AdminPage } from "../views/AdminPage";
+import { ArtistsAdminPage } from "../views/ArtistsAdminPage";
+import { ArtistProfilePage } from "../views/ArtistProfilePage";
+import { ProfilePage } from "../views/ProfilePage";
 import { useAuth } from "../state/auth";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -23,8 +28,17 @@ export function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/artists/:slug" element={<ArtistProfilePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/my-events"
+          element={
+            <RequireAuth>
+              <MyEventsPage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/dashboard"
           element={
@@ -46,6 +60,30 @@ export function App() {
           element={
             <RequireAuth>
               <EventFormPage mode="edit" />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <AdminPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/artists"
+          element={
+            <RequireAuth>
+              <ArtistsAdminPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
             </RequireAuth>
           }
         />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
@@ -81,6 +81,11 @@ function EventCard({ ev, size = "normal" }: { ev: EventListItem; size?: "normal"
           {ev.isFeatured && (
             <span className="rounded-full bg-neon-green/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-surface-950">
               Featured
+            </span>
+          )}
+          {ev.isPromoted && (
+            <span className="rounded-full bg-amber-400/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-surface-950">
+              Promoted
             </span>
           )}
         </div>
@@ -172,6 +177,116 @@ function formatRelativeDate(iso: string): string {
     return date.toLocaleDateString("de-DE", { weekday: "long" });
   }
   return formatDate(iso);
+}
+
+const COMMUNITY_ITEMS = [
+  { value: "turkish", label: "Türkisch", code: "tr" },
+  { value: "greek", label: "Griechisch", code: "gr" },
+  { value: "romanian", label: "Rumänisch", code: "ro" },
+  { value: "arabic", label: "Arabisch", code: "sa" },
+  { value: "polish", label: "Polnisch", code: "pl" },
+  { value: "italian", label: "Italienisch", code: "it" },
+  { value: "balkan", label: "Balkan", code: "rs" },
+  { value: "latin", label: "Lateinamerika", code: "br" },
+  { value: "african", label: "Afrikanisch", code: "ng" },
+  { value: "persian", label: "Persisch", code: "ir" },
+  { value: "kurdish", label: "Kurdisch", code: "iq" },
+  { value: "international", label: "International", code: "eu" },
+];
+
+const AUTO_SCROLL_INTERVAL = 3000;
+
+function CommunityCarousel() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+
+  const updateArrows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 2);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  }, []);
+
+  const scroll = useCallback((dir: 1 | -1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 200, behavior: "smooth" });
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: 200, behavior: "smooth" });
+      }
+    }, AUTO_SCROLL_INTERVAL);
+  }, []);
+
+  useEffect(() => {
+    resetTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [resetTimer]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    return () => el.removeEventListener("scroll", updateArrows);
+  }, [updateArrows]);
+
+  function handleArrow(dir: 1 | -1) {
+    scroll(dir);
+    resetTimer();
+  }
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-sm font-medium text-surface-500">Communities</div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleArrow(-1)}
+            disabled={!canLeft}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-surface-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button
+            onClick={() => handleArrow(1)}
+            disabled={!canRight}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-surface-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div
+        ref={scrollRef}
+        onMouseEnter={() => { if (timerRef.current) clearInterval(timerRef.current); }}
+        onMouseLeave={resetTimer}
+        className="flex gap-2 overflow-x-auto scrollbar-none"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {COMMUNITY_ITEMS.map((c) => (
+          <Link
+            key={c.value}
+            to={`/events?community=${c.value}`}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm text-surface-400 transition-all duration-200 hover:border-white/[0.15] hover:bg-white/[0.06] hover:text-white"
+          >
+            <img src={`https://hatscripts.github.io/circle-flags/flags/${c.code}.svg`} alt="" className="h-4 w-4 rounded-full" />
+            {c.label}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function HomePage() {
@@ -277,6 +392,9 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════ COMMUNITIES ═══════════════════ */}
+      <CommunityCarousel />
 
       {/* ═══════════════════ CATEGORIES ═══════════════════ */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -452,4 +570,12 @@ export function HomePage() {
                 to="/events"
                 className="rounded-full border border-white/15 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/5"
               >
-           
+                Events durchstöbern
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

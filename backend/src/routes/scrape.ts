@@ -41,11 +41,44 @@ scrapeRouter.get("/trigger-stream", requireAuth, async (req, res) => {
       return;
     }
 
-    sendEvent({ phase: "done", message: `Speichere ${scrapedData.length} Events...`, eventsFound: scrapedData.length });
+    // Filter out events that already exist (by sourceUrl or title match)
+    const existingScraped = await prisma.scrapedEvent.findMany({
+      where: { organizerId: userId, status: { in: ["PENDING", "APPROVED"] } },
+      select: { sourceUrl: true, title: true },
+    });
+    const existingEvents = await prisma.event.findMany({
+      where: { organizerId: userId },
+      select: { title: true },
+    });
+
+    const existingSourceUrls = new Set(existingScraped.map((e) => e.sourceUrl));
+    const existingTitles = new Set([
+      ...existingScraped.map((e) => e.title.toLowerCase().trim()),
+      ...existingEvents.map((e) => e.title.toLowerCase().trim()),
+    ]);
+
+    const newEvents = scrapedData.filter((ev) => {
+      if (existingSourceUrls.has(ev.sourceUrl)) return false;
+      if (existingTitles.has(ev.title.toLowerCase().trim())) return false;
+      return true;
+    });
+
+    const skipped = scrapedData.length - newEvents.length;
+    if (skipped > 0) {
+      sendEvent({ phase: "done", message: `${skipped} bereits bekannte Events uebersprungen.`, eventsFound: newEvents.length });
+    }
+
+    if (newEvents.length === 0) {
+      sendEvent({ phase: "done", message: `Keine neuen Events gefunden (${skipped} bereits vorhanden).`, eventsFound: 0 });
+      res.end();
+      return;
+    }
+
+    sendEvent({ phase: "done", message: `Speichere ${newEvents.length} neue Events...`, eventsFound: newEvents.length });
 
     // Store scraped events as PENDING
     const created = await Promise.all(
-      scrapedData.map((ev) =>
+      newEvents.map((ev) =>
         prisma.scrapedEvent.create({
           data: {
             sourceUrl: ev.sourceUrl,
@@ -69,7 +102,7 @@ scrapeRouter.get("/trigger-stream", requireAuth, async (req, res) => {
       )
     );
 
-    sendEvent({ phase: "done", message: `${created.length} Event(s) gespeichert!`, eventsFound: created.length });
+    sendEvent({ phase: "done", message: `${created.length} neue Event(s) gespeichert!${skipped > 0 ? ` (${skipped} bereits vorhanden)` : ""}`, eventsFound: created.length });
   } catch (err: any) {
     console.error("Scrape error:", err);
     sendEvent({ phase: "error", message: `Fehler: ${err.message || "Unbekannter Fehler"}` });
@@ -143,6 +176,18 @@ scrapeRouter.put("/events/:id/approve", requireAuth, async (req, res) => {
   if (scraped.organizerId !== userId) return res.status(403).json({ error: "Nicht berechtigt." });
   if (scraped.status !== "PENDING") return res.status(400).json({ error: "Event wurde bereits bearbeitet." });
 
+  // Check if user wants to promote this event
+  const promote = req.body?.promote === true;
+  let isPromoted = false;
+
+  if (promote) {
+    const organizer = await prisma.user.findUnique({ where: { id: userId }, select: { promotionTokens: true, isPartner: true, isAdmin: true } });
+    if (organizer && (organizer.isPartner || organizer.isAdmin) && organizer.promotionTokens > 0) {
+      isPromoted = true;
+      await prisma.user.update({ where: { id: userId }, data: { promotionTokens: { decrement: 1 } } });
+    }
+  }
+
   // Create a real event from scraped data
   const event = await prisma.event.create({
     data: {
@@ -160,9 +205,20 @@ scrapeRouter.put("/events/:id/approve", requireAuth, async (req, res) => {
       price: scraped.price,
       tags: scraped.tags,
       isFeatured: false,
+      isPromoted,
+      promotedAt: isPromoted ? new Date() : null,
       organizerId: userId,
     },
   });
+
+  // Link artists if provided
+  const artistIds = req.body?.artistIds;
+  if (Array.isArray(artistIds) && artistIds.length > 0) {
+    await prisma.eventArtist.createMany({
+      data: artistIds.map((artistId: string) => ({ eventId: event.id, artistId })),
+      skipDuplicates: true,
+    });
+  }
 
   // Mark scraped event as approved
   await prisma.scrapedEvent.update({

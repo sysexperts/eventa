@@ -22,6 +22,7 @@ export const createEventSchema = z.object({
   ticketUrl: z.string().url().optional().or(z.literal("").transform(() => undefined)),
   price: z.string().max(50).optional().or(z.literal("").transform(() => undefined)),
   tags: z.array(z.string().max(30)).max(10).optional().default([]),
+  community: z.string().max(50).optional().or(z.literal("").transform(() => undefined)),
   isFeatured: z.boolean().optional().default(false)
 });
 

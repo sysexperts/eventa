@@ -27,13 +27,37 @@ export type ScrapeProgress = {
 
 export type ProgressCallback = (progress: ScrapeProgress) => void;
 
+/**
+ * Strip HTML tags and decode common HTML entities from text.
+ */
+function stripHtml(text: string): string {
+  if (!text) return "";
+  // Remove HTML tags
+  let clean = text.replace(/<[^>]*>/g, " ");
+  // Decode common HTML entities
+  clean = clean
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#\d+;/g, " ")
+    .replace(/&[a-zA-Z]+;/g, " ");
+  // Collapse whitespace
+  clean = clean.replace(/\s+/g, " ").trim();
+  return clean;
+}
+
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (compatible; LocalEvents-Bot/2.0; Event Indexer)",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "de-DE,de;q=0.9,en;q=0.5",
 };
 
-const MAX_DETAIL_PAGES = 30;
+const MAX_DETAIL_PAGES = 50;
+const MAX_PAGINATION_PAGES = 10;
 const FETCH_DELAY_MS = 500;
 
 async function fetchHtml(url: string): Promise<string> {
@@ -71,15 +95,49 @@ export async function scrapeEventsFromUrl(
   // Phase 1: Try JSON-LD first (best quality)
   const jsonLdEvents = extractJsonLdEvents($, url);
   if (jsonLdEvents.length > 0) {
-    console.log(`[Scraper] Found ${jsonLdEvents.length} events via JSON-LD`);
-    emit({ phase: "done", message: `${jsonLdEvents.length} Events via strukturierte Daten gefunden.`, eventsFound: jsonLdEvents.length });
-    return deduplicateEvents(jsonLdEvents);
+    console.log(`[Scraper] Found ${jsonLdEvents.length} events via JSON-LD on first page`);
+    // Also check pagination pages for more JSON-LD events
+    const paginationUrls = collectPaginationLinks($, url);
+    let allJsonLd = [...jsonLdEvents];
+    for (let p = 0; p < Math.min(paginationUrls.length, MAX_PAGINATION_PAGES); p++) {
+      try {
+        emit({ phase: "overview", message: `Lade Seite ${p + 2}...`, eventsFound: allJsonLd.length });
+        await sleep(FETCH_DELAY_MS);
+        const pageHtml = await fetchHtml(paginationUrls[p]);
+        const page$ = cheerio.load(pageHtml);
+        const pageEvents = extractJsonLdEvents(page$, paginationUrls[p]);
+        if (pageEvents.length === 0) break;
+        allJsonLd.push(...pageEvents);
+        console.log(`[Scraper] Page ${p + 2}: Found ${pageEvents.length} more JSON-LD events`);
+      } catch { break; }
+    }
+    emit({ phase: "done", message: `${allJsonLd.length} Events via strukturierte Daten gefunden.`, eventsFound: allJsonLd.length });
+    return deduplicateEvents(allJsonLd);
   }
 
-  // Phase 1: Collect all event detail links from the overview page
-  const detailLinks = collectEventDetailLinks($, url);
-  console.log(`[Scraper] Found ${detailLinks.length} event detail links`);
-  emit({ phase: "overview", message: `${detailLinks.length} Event-Links auf der Seite gefunden.`, total: Math.min(detailLinks.length, MAX_DETAIL_PAGES) });
+  // Phase 1: Collect all event detail links from overview + pagination pages
+  let detailLinks = collectEventDetailLinks($, url);
+  const paginationUrls = collectPaginationLinks($, url);
+
+  if (paginationUrls.length > 0) {
+    emit({ phase: "overview", message: `${detailLinks.length} Links auf Seite 1 gefunden. Pruefe ${paginationUrls.length} weitere Seiten...` });
+    for (let p = 0; p < Math.min(paginationUrls.length, MAX_PAGINATION_PAGES); p++) {
+      try {
+        await sleep(FETCH_DELAY_MS);
+        emit({ phase: "overview", message: `Lade Seite ${p + 2}...` });
+        const pageHtml = await fetchHtml(paginationUrls[p]);
+        const page$ = cheerio.load(pageHtml);
+        const pageLinks = collectEventDetailLinks(page$, paginationUrls[p]);
+        const newLinks = pageLinks.filter((l) => !detailLinks.includes(l));
+        if (newLinks.length === 0) break;
+        detailLinks.push(...newLinks);
+        console.log(`[Scraper] Page ${p + 2}: Found ${newLinks.length} new links (total: ${detailLinks.length})`);
+      } catch { break; }
+    }
+  }
+
+  console.log(`[Scraper] Found ${detailLinks.length} event detail links total`);
+  emit({ phase: "overview", message: `${detailLinks.length} Event-Links gefunden.`, total: Math.min(detailLinks.length, MAX_DETAIL_PAGES) });
 
   if (detailLinks.length === 0) {
     emit({ phase: "overview", message: "Keine Detail-Links gefunden, versuche Fallback..." });
@@ -122,6 +180,89 @@ export async function scrapeEventsFromUrl(
   const result = deduplicateEvents(events);
   emit({ phase: "done", message: `Fertig! ${result.length} Events extrahiert.`, eventsFound: result.length });
   return result;
+}
+
+// ─── Pagination: Collect next/more page links ──────────────────────────────
+
+function collectPaginationLinks($: cheerio.CheerioAPI, baseUrl: string): string[] {
+  const links: string[] = [];
+  const baseHost = new URL(baseUrl).hostname;
+  const seen = new Set<string>();
+
+  // Common pagination selectors
+  const paginationSelectors = [
+    '.pagination a[href]',
+    '.pager a[href]',
+    'nav[aria-label*="pagination"] a[href]',
+    'nav[aria-label*="Pagination"] a[href]',
+    '.page-numbers a[href]',
+    '.nav-links a[href]',
+    'a.next[href]', 'a.page-next[href]',
+    'a[rel="next"][href]',
+    'a[aria-label="Next"][href]',
+    'a[aria-label="Nächste Seite"][href]',
+    'a[aria-label="Weiter"][href]',
+  ];
+
+  for (const sel of paginationSelectors) {
+    $(sel).each((_i: any, el: any) => {
+      const href = $(el).attr("href");
+      if (!href) return;
+      const resolved = resolveUrl(href, baseUrl);
+      if (!resolved || resolved === baseUrl || seen.has(resolved)) return;
+      try {
+        const u = new URL(resolved);
+        if (u.hostname !== baseHost) return;
+        seen.add(resolved);
+        links.push(resolved);
+      } catch { /* ignore */ }
+    });
+  }
+
+  // Also look for links with pagination-like text content
+  $("a[href]").each((_i: any, el: any) => {
+    const $el = $(el);
+    const text = $el.text().trim().toLowerCase();
+    const href = $el.attr("href");
+    if (!href) return;
+
+    const isPaginationText = /^(nächste|weiter|next|mehr|more|\d+|»|›|>>)$/i.test(text) ||
+      /mehr\s*(anzeigen|laden|events)/i.test(text) ||
+      /weitere\s*(events|veranstaltungen|termine)/i.test(text) ||
+      /alle\s*(anzeigen|events|veranstaltungen)/i.test(text) ||
+      /load\s*more/i.test(text);
+
+    if (!isPaginationText) return;
+
+    const resolved = resolveUrl(href, baseUrl);
+    if (!resolved || resolved === baseUrl || seen.has(resolved)) return;
+    try {
+      const u = new URL(resolved);
+      if (u.hostname !== baseHost) return;
+      seen.add(resolved);
+      links.push(resolved);
+    } catch { /* ignore */ }
+  });
+
+  // Also check for ?page=N or ?seite=N patterns in the URL
+  const baseUrlObj = new URL(baseUrl);
+  const pageParam = baseUrlObj.searchParams.get("page") || baseUrlObj.searchParams.get("seite") || baseUrlObj.searchParams.get("p");
+  if (pageParam && !isNaN(Number(pageParam))) {
+    const currentPage = Number(pageParam);
+    for (let p = currentPage + 1; p <= currentPage + MAX_PAGINATION_PAGES; p++) {
+      const nextUrl = new URL(baseUrl);
+      if (baseUrlObj.searchParams.has("page")) nextUrl.searchParams.set("page", String(p));
+      else if (baseUrlObj.searchParams.has("seite")) nextUrl.searchParams.set("seite", String(p));
+      else if (baseUrlObj.searchParams.has("p")) nextUrl.searchParams.set("p", String(p));
+      const resolved = nextUrl.toString();
+      if (!seen.has(resolved)) {
+        seen.add(resolved);
+        links.push(resolved);
+      }
+    }
+  }
+
+  return links;
 }
 
 // ─── Phase 1: Collect detail links ───────────────────────────────────────────
@@ -238,9 +379,9 @@ function extractEventFromDetailPage(
 
   return {
     sourceUrl: detailUrl,
-    title: cleanTitle(title),
-    shortDescription: (shortDesc || description.slice(0, 200)).slice(0, 200),
-    description: description || shortDesc || title,
+    title: cleanTitle(stripHtml(title)),
+    shortDescription: stripHtml(shortDesc || description.slice(0, 200)).slice(0, 200),
+    description: stripHtml(description || shortDesc || title),
     startsAt,
     endsAt,
     address,
@@ -472,11 +613,15 @@ function jsonLdToEvent(item: any, sourceUrl: string): ScrapedEventData {
   const cityStr = typeof address === "string" ? "" : (address.addressLocality || "");
   const offers = Array.isArray(item.offers) ? item.offers[0] : item.offers;
 
+  const rawDesc = item.description || "";
+  const cleanDesc = stripHtml(rawDesc);
+  const cleanName = stripHtml(item.name || "");
+
   return {
     sourceUrl,
-    title: item.name || "",
-    shortDescription: (item.description || item.name || "").slice(0, 200),
-    description: item.description || "",
+    title: cleanName,
+    shortDescription: (cleanDesc || cleanName).slice(0, 200),
+    description: cleanDesc || cleanName,
     startsAt: parseDate(item.startDate),
     endsAt: parseDate(item.endDate),
     address: addressStr || (typeof location.name === "string" ? location.name : ""),

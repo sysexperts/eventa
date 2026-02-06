@@ -35,7 +35,7 @@ authRouter.post("/register", async (req, res) => {
       name,
       website: website || null
     },
-    select: { id: true, email: true, name: true, website: true, createdAt: true, updatedAt: true }
+    select: { id: true, email: true, name: true, website: true, isPartner: true, isAdmin: true, promotionTokens: true, createdAt: true, updatedAt: true }
   });
 
   const token = signAccessToken(user.id);
@@ -64,6 +64,9 @@ authRouter.post("/login", async (req, res) => {
       email: user.email,
       name: user.name,
       website: user.website,
+      isPartner: user.isPartner,
+      isAdmin: user.isAdmin,
+      promotionTokens: user.promotionTokens,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }

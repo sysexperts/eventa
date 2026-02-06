@@ -27,11 +27,22 @@ model User {
   passwordHash String
   name         String
   website      String?
+  address      String?
+  zip          String?
+  city         String?
+  phone        String?
+  companyName  String?
+  isPartner       Boolean  @default(false)
+  isAdmin         Boolean  @default(false)
+  promotionTokens Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  events        Event[]
-  scrapedEvents ScrapedEvent[]
+  events         Event[]
+  scrapedEvents  ScrapedEvent[]
+  monitoredUrls  MonitoredUrl[]
+  artistReviews  ArtistReview[]
+  artistFollows  ArtistFollow[]
 }
 
 model Event {
@@ -49,10 +60,15 @@ model Event {
   ticketUrl        String?
   price            String?
   tags             String[]  @default([])
+  community        String?
   isFeatured       Boolean   @default(false)
+  isPromoted       Boolean   @default(false)
+  promotedAt       DateTime?
 
   organizerId String
   organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  artists     EventArtist[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -60,6 +76,99 @@ model Event {
   @@index([category])
   @@index([startsAt])
   @@index([city])
+}
+
+model Artist {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  bio        String   @default("")
+  imageUrl        String?
+  headerImageUrl  String?
+  genre      String   @default("")
+  hometown   String   @default("")
+  tags       String[] @default([])
+  website    String?
+  instagram  String?
+  spotify    String?
+  youtube    String?
+  tiktok     String?
+  facebook   String?
+  soundcloud String?
+  bandcamp   String?
+  pressQuote String   @default("")
+
+  events    EventArtist[]
+  reviews   ArtistReview[]
+  followers ArtistFollow[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventArtist {
+  id       String @id @default(cuid())
+  eventId  String
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, artistId])
+  @@index([eventId])
+  @@index([artistId])
+}
+
+model ArtistReview {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String   @default("")
+
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([artistId, userId])
+  @@index([artistId])
+  @@index([userId])
+}
+
+model ArtistFollow {
+  id        String   @id @default(cuid())
+
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([artistId, userId])
+  @@index([artistId])
+  @@index([userId])
+}
+
+model MonitoredUrl {
+  id          String   @id @default(cuid())
+  url         String
+  label       String   @default("")
+  isActive    Boolean  @default(true)
+  lastScrapedAt DateTime?
+  lastEventCount Int    @default(0)
+  errorCount  Int      @default(0)
+  lastError   String?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
 }
 
 model ScrapedEvent {

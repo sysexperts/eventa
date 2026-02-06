@@ -32,7 +32,15 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           <NavLink to="/events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Events</NavLink>
           {user ? (
             <>
+              <NavLink to="/my-events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Meine Events</NavLink>
               <NavLink to="/dashboard" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Dashboard</NavLink>
+              <NavLink to="/profile" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Profil</NavLink>
+              {user?.isAdmin && (
+                <NavLink to="/admin" onClick={onClose} className="text-base font-medium text-red-400 hover:text-red-300 transition-colors">Admin</NavLink>
+              )}
+              {user?.isAdmin && (
+                <NavLink to="/admin/artists" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Künstler</NavLink>
+              )}
               <button
                 className="mt-4 text-left text-sm text-surface-500 hover:text-neon-pink transition-colors"
                 onClick={async () => { await logout(); navigate("/"); onClose(); }}
@@ -81,9 +89,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-6 lg:flex">
             <NavItem to="/events" label="Events" />
+            {user && <NavItem to="/my-events" label="Meine Events" />}
             {user && <NavItem to="/dashboard" label="Dashboard" />}
+            {user?.isAdmin && <NavItem to="/admin" label="Admin" />}
+            {user?.isAdmin && <NavItem to="/admin/artists" label="Künstler" />}
           </nav>
 
           {/* Right side */}
@@ -98,14 +109,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </a>
 
             {/* Auth buttons - desktop */}
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-3">
               {user ? (
-                <button
-                  className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-surface-400 transition-all hover:text-white hover:border-white/20"
-                  onClick={async () => { await logout(); navigate("/"); }}
-                >
-                  Abmelden
-                </button>
+                <div className="group relative flex items-center gap-3">
+                  <div className="flex items-center gap-2 cursor-pointer">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-500/20 text-xs font-bold text-accent-400">
+                      {user.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <span className="text-sm font-medium text-surface-300 group-hover:text-white transition-colors">{user.name}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-surface-500 group-hover:text-white transition-colors"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  {/* Hover dropdown */}
+                  <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute right-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-surface-900 py-1.5 shadow-xl shadow-black/30">
+                    <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2 text-sm text-surface-300 hover:text-white hover:bg-white/5 transition-colors">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      Profil
+                    </Link>
+                    <div className="my-1 border-t border-white/[0.06]"/>
+                    <button
+                      className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-surface-400 hover:text-neon-pink hover:bg-white/5 transition-colors"
+                      onClick={async () => { await logout(); navigate("/"); }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      Abmelden
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <Link to="/login" className="px-3 py-2 text-sm font-medium text-surface-400 transition-colors hover:text-white">
