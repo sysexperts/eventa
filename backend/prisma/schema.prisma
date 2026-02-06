@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventCategory {
+  KONZERT
+  THEATER
+  LESUNG
+  COMEDY
+  SONSTIGES
+}
+
+enum ScrapedEventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  website      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  events        Event[]
+  scrapedEvents ScrapedEvent[]
+}
+
+model Event {
+  id               String        @id @default(cuid())
+  title            String
+  shortDescription String
+  description      String
+  category         EventCategory
+  startsAt         DateTime
+  endsAt           DateTime?
+  address          String
+  city             String
+  country          String
+  imageUrl         String?
+  ticketUrl        String?
+  price            String?
+  tags             String[]  @default([])
+  isFeatured       Boolean   @default(false)
+
+  organizerId String
+  organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([startsAt])
+  @@index([city])
+}
+
+model ScrapedEvent {
+  id               String             @id @default(cuid())
+  sourceUrl        String
+  title            String
+  shortDescription String             @default("")
+  description      String             @default("")
+  category         EventCategory      @default(SONSTIGES)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  address          String             @default("")
+  city             String             @default("")
+  country          String             @default("DE")
+  imageUrl         String?
+  ticketUrl        String?
+  price            String?
+  tags             String[]           @default([])
+  status           ScrapedEventStatus @default(PENDING)
+  rawHtml          String?            @default("")
+
+  organizerId String
+  organizer   User @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId])
+  @@index([status])
+}
