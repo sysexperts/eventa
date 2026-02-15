@@ -452,23 +452,25 @@ const CULTURES = [
 ];
 
 function CommunityCarousel() {
-  const [items, setItems] = useState(CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, img: c.img })));
+  const fallback = CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, img: c.img }));
+  const [items, setItems] = useState(fallback);
 
   useEffect(() => {
     api.communities.list()
       .then((r) => {
         if (!r.communities?.length) return;
-        const dbMap = new Map<string, any>();
-        for (const db of r.communities) dbMap.set(db.slug, db);
-        setItems((prev) =>
-          prev.map((c) => {
-            const db = dbMap.get(c.slug);
-            if (!db) return c;
+        // Show only communities flagged for homepage; fall back to hardcoded defaults for missing fields
+        const homepageCommunities = r.communities.filter((c: any) => c.showOnHomepage);
+        if (!homepageCommunities.length) return;
+        const cultureMap = new Map(CULTURES.map((c) => [c.slug, c]));
+        setItems(
+          homepageCommunities.map((db: any) => {
+            const fallbackC = cultureMap.get(db.slug);
             return {
-              slug: c.slug,
-              name: db.name || c.name,
-              flag: db.flagCode || db.country || c.flag,
-              img: db.bannerUrl || db.imageUrl || c.img,
+              slug: db.slug,
+              name: db.name || fallbackC?.name || db.slug,
+              flag: (db.flagCode || db.country || fallbackC?.flag || "eu").toLowerCase(),
+              img: db.bannerUrl || db.imageUrl || fallbackC?.img || "",
             };
           })
         );

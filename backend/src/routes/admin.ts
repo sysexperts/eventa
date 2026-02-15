@@ -330,6 +330,7 @@ const communityFieldsSchema = {
   welcomeMessage: z.string().max(2000).optional(),
   maxMembers: z.number().int().positive().optional().nullable(),
   color: z.string().max(20).optional().nullable(),
+  showOnHomepage: z.boolean().optional(),
 };
 
 const createCommunitySchema = z.object({
@@ -361,6 +362,7 @@ const adminUpdateCommunitySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   ...communityFieldsSchema,
   isActive: z.boolean().optional(),
+  showOnHomepage: z.boolean().optional(),
 });
 
 adminRouter.put("/communities/:id", requireAuth, requireAdmin, async (req, res) => {

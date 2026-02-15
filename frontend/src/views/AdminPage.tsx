@@ -845,6 +845,26 @@ export function AdminPage() {
                           </div>
                         </div>
 
+                        {/* Toggle showOnHomepage */}
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-white">Startseite</div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.admin.updateCommunity(c.id, { showOnHomepage: !c.showOnHomepage });
+                                await loadCommunities();
+                              } catch { alert("Fehler."); }
+                            }}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                              c.showOnHomepage
+                                ? "bg-accent-500/20 text-accent-400"
+                                : "bg-surface-700/50 text-surface-400"
+                            }`}
+                          >
+                            {c.showOnHomepage ? "✓ Auf Startseite angezeigt" : "Nicht auf Startseite"}
+                          </button>
+                        </div>
+
                         {/* Bilder & Flagge bearbeiten */}
                         <div className="space-y-3">
                           <div className="text-sm font-medium text-white">Bilder &amp; Flagge</div>

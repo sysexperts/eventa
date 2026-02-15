@@ -38,6 +38,7 @@ communitiesRouter.get("/", async (_req, res) => {
       country: true,
       flagCode: true,
       language: true,
+      showOnHomepage: true,
       _count: { select: { members: true, events: true } },
     },
     orderBy: { name: "asc" },
@@ -61,6 +62,7 @@ communitiesRouter.get("/:slug", async (req, res) => {
       flagCode: true,
       language: true,
       isActive: true,
+      showOnHomepage: true,
       createdAt: true,
       _count: { select: { members: true, events: true } },
       members: {

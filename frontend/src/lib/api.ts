@@ -211,6 +211,7 @@ export type Community = {
   flagCode?: string | null;
   language?: string | null;
   isActive?: boolean;
+  showOnHomepage?: boolean;
   // Location & Contact
   city?: string | null;
   region?: string | null;

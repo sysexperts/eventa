@@ -335,7 +335,8 @@ model Community {
   country     String?
   flagCode    String?
   language    String?
-  isActive    Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  showOnHomepage Boolean  @default(false)
 
   // Location & Contact
   city        String?
