@@ -550,6 +550,15 @@ function extractLocation(
   return { address: "", city: extractCityFromHostname(host) };
 }
 
+function extractCityFromHostname(host: string): string {
+  const parts = host.replace(/^www\./, "").split(".");
+  if (parts.length >= 2) {
+    const name = parts[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  return "";
+}
+
 function extractCityFromAddress(addr: string): string {
   // Pattern: "71334 Waiblingen" or ", Waiblingen"
   const plzMatch = addr.match(/\d{5}\s+([A-Z\u00c4\u00d6\u00dc][a-z\u00e4\u00f6\u00fc\u00df]+)/);
@@ -559,10 +568,6 @@ function extractCityFromAddress(addr: string): string {
   return "";
 }
 
-function extractCityFromHostname(host: string): string {
-  // e.g. kulturhaus-schwanen.de -> try to find city in common patterns
-  return "";
-}
 
 function extractTicketLink($: cheerio.CheerioAPI, baseUrl: string): string | null {
   // Look for ticket/reservix/eventbrite links
@@ -713,3 +718,4 @@ function deduplicateEvents(events: ScrapedEventData[]): ScrapedEventData[] {
     return true;
   });
 }
+

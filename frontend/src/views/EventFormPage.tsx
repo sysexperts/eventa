@@ -67,6 +67,7 @@ export function EventFormPage({ mode }: Props) {
     city: "",
     country: "DE",
     imageUrl: "",
+    heroVideoUrl: "",
     ticketUrl: "",
     price: "",
     tagsInput: "",
@@ -126,6 +127,7 @@ export function EventFormPage({ mode }: Props) {
             city: e.city,
             country: e.country,
             imageUrl: e.imageUrl || "",
+            heroVideoUrl: (e as any).heroVideoUrl || "",
             ticketUrl: e.ticketUrl || "",
             price: e.price || "",
             tagsInput: (e.tags || []).join(", "),
@@ -160,6 +162,7 @@ export function EventFormPage({ mode }: Props) {
       startsAt: new Date(form.startsAt).toISOString(),
       endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
       imageUrl: form.imageUrl || undefined,
+      heroVideoUrl: form.heroVideoUrl || undefined,
       ticketUrl: form.ticketUrl || undefined,
       price: form.price || undefined,
       tags,
@@ -289,6 +292,11 @@ export function EventFormPage({ mode }: Props) {
               </label>
             </div>
           </div>
+        </div>
+        <div>
+          <Label>Hero Video (YouTube-URL, optional)</Label>
+          <Input type="url" placeholder="https://www.youtube.com/watch?v=..." value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} />
+          <p className="mt-1 text-[11px] text-surface-500">YouTube-Link für Video im Hero-Slider. Wird automatisch stumm abgespielt.</p>
         </div>
         <div>
           <Label>Ticket-URL (optional)</Label>

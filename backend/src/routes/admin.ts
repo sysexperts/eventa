@@ -146,3 +146,104 @@ adminRouter.put("/monitored-urls/:urlId", requireAuth, requireAdmin, async (req,
   });
   res.json({ url: updated });
 });
+
+// ─── Global Scrape Sources ────────────────────────────────────────────────────
+
+// List all global scrape sources
+adminRouter.get("/global-sources", requireAuth, requireAdmin, async (_req, res) => {
+  const sources = await prisma.monitoredUrl.findMany({
+    where: { isGlobal: true },
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ sources });
+});
+
+// Add a global scrape source
+const addGlobalSourceSchema = z.object({
+  url: z.string().url(),
+  label: z.string().max(100).optional(),
+  defaultCategory: z.string().optional(),
+  defaultCity: z.string().max(100).optional(),
+});
+
+adminRouter.post("/global-sources", requireAuth, requireAdmin, async (req, res) => {
+  const adminUserId = (req as AuthenticatedRequest).userId;
+  const parsed = addGlobalSourceSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  // Check for duplicate
+  const existing = await prisma.monitoredUrl.findFirst({
+    where: { url: parsed.data.url, isGlobal: true },
+  });
+  if (existing) return res.status(409).json({ error: "Diese URL ist bereits als globale Quelle hinterlegt." });
+
+  const source = await prisma.monitoredUrl.create({
+    data: {
+      url: parsed.data.url,
+      label: parsed.data.label || "",
+      isGlobal: true,
+      defaultCategory: (parsed.data.defaultCategory as any) || null,
+      defaultCity: parsed.data.defaultCity || null,
+      userId: adminUserId,
+    },
+  });
+  res.status(201).json({ source });
+});
+
+// Update a global scrape source
+const updateGlobalSourceSchema = z.object({
+  label: z.string().max(100).optional(),
+  isActive: z.boolean().optional(),
+  defaultCategory: z.string().nullable().optional(),
+  defaultCity: z.string().max(100).nullable().optional(),
+});
+
+adminRouter.put("/global-sources/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const source = await prisma.monitoredUrl.findUnique({ where: { id } });
+  if (!source || !source.isGlobal) return res.status(404).json({ error: "Globale Quelle nicht gefunden." });
+
+  const parsed = updateGlobalSourceSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const updated = await prisma.monitoredUrl.update({
+    where: { id },
+    data: parsed.data as any,
+  });
+  res.json({ source: updated });
+});
+
+// Delete a global scrape source
+adminRouter.delete("/global-sources/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const source = await prisma.monitoredUrl.findUnique({ where: { id } });
+  if (!source || !source.isGlobal) return res.status(404).json({ error: "Globale Quelle nicht gefunden." });
+
+  await prisma.monitoredUrl.delete({ where: { id } });
+  res.status(204).send();
+});
+
+// Trigger scrape for a global source
+adminRouter.post("/global-sources/:id/scrape-now", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const source = await prisma.monitoredUrl.findUnique({ where: { id } });
+  if (!source || !source.isGlobal) return res.status(404).json({ error: "Globale Quelle nicht gefunden." });
+
+  const { scrapeMonitoredUrl } = await import("../services/cronjob.js");
+  const result = await scrapeMonitoredUrl(source);
+  res.json(result);
+});
+
+// Get all pending scraped events from global sources (for admin review)
+adminRouter.get("/scraped-events", requireAuth, requireAdmin, async (_req, res) => {
+  const events = await prisma.scrapedEvent.findMany({
+    where: {
+      status: "PENDING",
+      organizer: { isAdmin: true },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+  res.json({ events });
+});

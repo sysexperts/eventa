@@ -1,16 +1,38 @@
 import { useEffect, useState } from "react";
-import { api, type AdminUser } from "../lib/api";
+import { api, type AdminUser, type GlobalSource, type EventCategory } from "../lib/api";
 import { useAuth } from "../state/auth";
+import { categoryLabel } from "../lib/format";
 import { Button, Input, Label } from "../ui/components";
+
+const ALL_CATEGORIES: EventCategory[] = [
+  "KONZERT", "FESTIVAL", "MUSICAL", "OPER", "KABARETT", "OPEN_MIC", "DJ_EVENT",
+  "THEATER", "COMEDY", "TANZ", "ZAUBERSHOW",
+  "AUSSTELLUNG", "LESUNG", "FILM", "FOTOGRAFIE", "MUSEUM",
+  "FLOHMARKT", "WOCHENMARKT", "WEIHNACHTSMARKT", "MESSE", "FOOD_FESTIVAL",
+  "SPORT", "LAUF", "TURNIER", "YOGA", "WANDERUNG",
+  "KINDERTHEATER", "FAMILIENTAG", "KINDER_WORKSHOP",
+  "WEINPROBE", "CRAFT_BEER", "KOCHKURS", "FOOD_TRUCK", "KULINARISCHE_TOUR",
+  "WORKSHOP", "SEMINAR", "KONFERENZ", "NETWORKING", "VORTRAG",
+  "CLUBNACHT", "KARAOKE", "PARTY",
+  "KARNEVAL", "OKTOBERFEST", "SILVESTER", "STADTFEST", "STRASSENFEST",
+  "SONSTIGES",
+];
 
 export function AdminPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState<"users" | "sources">("users");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [newUrls, setNewUrls] = useState<Record<string, string>>({});
   const [tokenInputs, setTokenInputs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Global sources state
+  const [sources, setSources] = useState<GlobalSource[]>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+  const [newSource, setNewSource] = useState({ url: "", label: "", defaultCategory: "", defaultCity: "" });
+  const [scrapeResult, setScrapeResult] = useState<Record<string, string>>({});
 
   async function loadUsers() {
     try {
@@ -23,8 +45,18 @@ export function AdminPage() {
     }
   }
 
+  async function loadSources() {
+    setSourcesLoading(true);
+    try {
+      const res = await api.admin.listGlobalSources();
+      setSources(res.sources);
+    } catch { setSources([]); }
+    finally { setSourcesLoading(false); }
+  }
+
   useEffect(() => {
     loadUsers();
+    loadSources();
   }, []);
 
   if (!user?.isAdmin) {
@@ -109,13 +141,198 @@ export function AdminPage() {
     }
   }
 
+  async function addSource() {
+    if (!newSource.url.trim()) return;
+    try { new URL(newSource.url); } catch { return alert("Ungueltige URL."); }
+    setBusy("add-source");
+    try {
+      await api.admin.addGlobalSource({
+        url: newSource.url,
+        label: newSource.label || undefined,
+        defaultCategory: newSource.defaultCategory || undefined,
+        defaultCity: newSource.defaultCity || undefined,
+      });
+      setNewSource({ url: "", label: "", defaultCategory: "", defaultCity: "" });
+      await loadSources();
+    } catch (e: any) {
+      alert(e?.message || "Fehler beim Hinzufuegen.");
+    } finally { setBusy(null); }
+  }
+
+  async function deleteSource(id: string) {
+    if (!confirm("Quelle wirklich entfernen?")) return;
+    try { await api.admin.deleteGlobalSource(id); await loadSources(); }
+    catch { alert("Fehler."); }
+  }
+
+  async function toggleSource(id: string, current: boolean) {
+    try { await api.admin.updateGlobalSource(id, { isActive: !current }); await loadSources(); }
+    catch { alert("Fehler."); }
+  }
+
+  async function scrapeSource(id: string) {
+    setBusy(id);
+    setScrapeResult((p) => ({ ...p, [id]: "Scraping..." }));
+    try {
+      const res = await api.admin.scrapeGlobalSource(id);
+      setScrapeResult((p) => ({ ...p, [id]: res.error ? `Fehler: ${res.error}` : `${res.newEvents} neue, ${res.skipped} uebersprungen` }));
+      await loadSources();
+    } catch (e: any) {
+      setScrapeResult((p) => ({ ...p, [id]: `Fehler: ${e?.message || "Unbekannt"}` }));
+    } finally { setBusy(null); }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400">Admin</span>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Benutzerverwaltung</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Administration</h1>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl bg-white/[0.03] p-1">
+        <button
+          onClick={() => setTab("users")}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "users" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
+          }`}
+        >
+          Benutzer ({users.length})
+        </button>
+        <button
+          onClick={() => setTab("sources")}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "sources" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
+          }`}
+        >
+          Globale Quellen ({sources.length})
+        </button>
+      </div>
+
+      {/* ─── Sources Tab ─── */}
+      {tab === "sources" && (
+        <div className="space-y-4">
+          <p className="text-sm text-surface-400">
+            Globale Quellen werden automatisch taeglich gescrapt. Events landen als Vorschlaege im Dashboard und werden automatisch kategorisiert.
+          </p>
+
+          {/* Add new source */}
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
+            <div className="text-sm font-medium text-white">Neue Quelle hinzufuegen</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>URL *</Label>
+                <Input
+                  value={newSource.url}
+                  onChange={(e: any) => setNewSource((p) => ({ ...p, url: e.target.value }))}
+                  placeholder="https://stadt.de/veranstaltungen"
+                />
+              </div>
+              <div>
+                <Label>Bezeichnung</Label>
+                <Input
+                  value={newSource.label}
+                  onChange={(e: any) => setNewSource((p) => ({ ...p, label: e.target.value }))}
+                  placeholder="Stadtportal Musterstadt"
+                />
+              </div>
+              <div>
+                <Label>Standard-Kategorie</Label>
+                <select
+                  value={newSource.defaultCategory}
+                  onChange={(e: any) => setNewSource((p) => ({ ...p, defaultCategory: e.target.value }))}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none"
+                >
+                  <option value="">Auto-Erkennung</option>
+                  {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Standard-Stadt</Label>
+                <Input
+                  value={newSource.defaultCity}
+                  onChange={(e: any) => setNewSource((p) => ({ ...p, defaultCity: e.target.value }))}
+                  placeholder="z.B. Stuttgart"
+                />
+              </div>
+            </div>
+            <Button onClick={addSource} disabled={busy === "add-source" || !newSource.url.trim()}>
+              {busy === "add-source" ? "Speichere..." : "Quelle hinzufuegen"}
+            </Button>
+          </div>
+
+          {/* Sources list */}
+          {sourcesLoading ? (
+            <div className="py-8 text-center text-sm text-surface-500">Lade Quellen...</div>
+          ) : sources.length === 0 ? (
+            <div className="py-8 text-center text-sm text-surface-500">Noch keine globalen Quellen hinterlegt.</div>
+          ) : (
+            <div className="space-y-2">
+              {sources.map((s) => (
+                <div key={s.id} className={`rounded-2xl border p-4 ${
+                  s.isActive ? "border-white/[0.06] bg-white/[0.03]" : "border-white/[0.04] bg-white/[0.01] opacity-60"
+                }`}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${s.isActive ? (s.errorCount > 0 ? "bg-amber-400" : "bg-neon-green") : "bg-surface-600"}`} />
+                        <span className="font-medium text-white text-sm">{s.label || new URL(s.url).hostname}</span>
+                        {s.defaultCategory && (
+                          <span className="rounded-full bg-accent-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-accent-400">
+                            {categoryLabel(s.defaultCategory as EventCategory)}
+                          </span>
+                        )}
+                        {s.defaultCity && (
+                          <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-blue-400">
+                            {s.defaultCity}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-surface-500 truncate">{s.url}</div>
+                      <div className="mt-1 flex gap-3 text-[11px] text-surface-600">
+                        {s.lastScrapedAt && (
+                          <span>Letzter Scan: {new Date(s.lastScrapedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                        )}
+                        {s.lastEventCount > 0 && <span className="text-neon-green">{s.lastEventCount} neue</span>}
+                        {s.errorCount > 0 && <span className="text-amber-400">Fehler: {s.lastError}</span>}
+                      </div>
+                      {scrapeResult[s.id] && (
+                        <div className={`mt-1 text-xs ${scrapeResult[s.id].startsWith("Fehler") ? "text-red-400" : "text-neon-green"}`}>
+                          {scrapeResult[s.id]}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button
+                        onClick={() => scrapeSource(s.id)}
+                        disabled={busy === s.id}
+                        className="rounded-lg bg-accent-500/20 px-3 py-1.5 text-xs font-medium text-accent-400 hover:bg-accent-500/30 disabled:opacity-30"
+                      >
+                        {busy === s.id ? "..." : "Jetzt scannen"}
+                      </button>
+                      <button
+                        onClick={() => toggleSource(s.id, s.isActive)}
+                        className="rounded-lg bg-white/5 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/10"
+                      >
+                        {s.isActive ? "Pause" : "Aktiv"}
+                      </button>
+                      <button
+                        onClick={() => deleteSource(s.id)}
+                        className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/20"
+                      >
+                        Entfernen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Users Tab ─── */}
+      {tab === "users" && (<>
       <p className="text-sm text-surface-400">
         Alle registrierten Benutzer. Du kannst Partner-Rechte vergeben und ueberwachte URLs fuer Kunden hinterlegen.
       </p>
@@ -307,6 +524,7 @@ export function AdminPage() {
           })}
         </div>
       )}
+    </>)}
     </div>
   );
 }

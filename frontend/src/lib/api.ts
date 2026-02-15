@@ -61,12 +61,19 @@ export type MonitoredUrl = {
   url: string;
   label: string;
   isActive: boolean;
+  isGlobal?: boolean;
+  defaultCategory?: string | null;
+  defaultCity?: string | null;
   lastScrapedAt?: string | null;
   lastEventCount: number;
   errorCount: number;
   lastError?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type GlobalSource = MonitoredUrl & {
+  user?: { name: string; email: string };
 };
 
 export type EventCategory =
@@ -92,6 +99,7 @@ export type EventListItem = {
   city: string;
   country: string;
   imageUrl?: string | null;
+  heroVideoUrl?: string | null;
   ticketUrl?: string | null;
   price?: string | null;
   tags: string[];
@@ -323,6 +331,24 @@ export const api = {
       request<{ url: MonitoredUrl }>(`/api/admin/monitored-urls/${urlId}`, {
         method: "PUT",
         body: JSON.stringify(data),
+      }),
+    listGlobalSources: () =>
+      request<{ sources: GlobalSource[] }>("/api/admin/global-sources"),
+    addGlobalSource: (data: { url: string; label?: string; defaultCategory?: string; defaultCity?: string }) =>
+      request<{ source: GlobalSource }>("/api/admin/global-sources", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateGlobalSource: (id: string, data: { label?: string; isActive?: boolean; defaultCategory?: string | null; defaultCity?: string | null }) =>
+      request<{ source: GlobalSource }>(`/api/admin/global-sources/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    deleteGlobalSource: (id: string) =>
+      request<void>(`/api/admin/global-sources/${id}`, { method: "DELETE" }),
+    scrapeGlobalSource: (id: string) =>
+      request<{ newEvents: number; skipped: number; error?: string }>(`/api/admin/global-sources/${id}/scrape-now`, {
+        method: "POST",
       }),
   },
   artists: {

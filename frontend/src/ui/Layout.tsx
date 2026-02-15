@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/auth";
 import { AuthModal } from "./AuthModal";
-import { MegaMenu } from "./MegaMenu";
-
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
@@ -97,7 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Nav */}
           <nav className="hidden items-center gap-6 lg:flex">
-            <MegaMenu />
+            <NavItem to="/events" label="Events" />
             {user && <NavItem to="/favorites" label="Favoriten" />}
             {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/my-events" label="Meine Events" />}
             {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/dashboard" label="Dashboard" />}

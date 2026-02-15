@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
@@ -22,11 +22,13 @@ const CATEGORIES = [
 ];
 
 function EventCard({ ev, size = "normal", isFavorited = false, onToggle }: { ev: EventListItem; size?: "normal" | "compact"; isFavorited?: boolean; onToggle?: (eventId: string, favorited: boolean) => void }) {
+  const isPast = new Date(ev.startsAt) < new Date();
+
   if (size === "compact") {
     return (
       <Link
         to={`/events/${ev.id}`}
-        className="group flex gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-all hover:border-white/[0.12] hover:bg-white/[0.05]"
+        className={`group flex gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-all hover:border-white/[0.12] hover:bg-white/[0.05] ${isPast ? "opacity-50 grayscale" : ""}`}
       >
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg">
           {ev.imageUrl ? (
@@ -63,7 +65,7 @@ function EventCard({ ev, size = "normal", isFavorited = false, onToggle }: { ev:
   return (
     <Link
       to={`/events/${ev.id}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.06] hover:shadow-2xl hover:shadow-accent-500/5"
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.06] hover:shadow-2xl hover:shadow-accent-500/5 ${isPast ? "opacity-60 grayscale" : ""}`}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {ev.imageUrl ? (
@@ -80,12 +82,17 @@ function EventCard({ ev, size = "normal", isFavorited = false, onToggle }: { ev:
         <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/20 to-transparent" />
 
         <div className="absolute left-3 top-3 flex gap-2">
-          {ev.isFeatured && (
+          {isPast && (
+            <span className="rounded-full bg-surface-600/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              Abgelaufen
+            </span>
+          )}
+          {ev.isFeatured && !isPast && (
             <span className="rounded-full bg-neon-green/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-surface-950">
               Featured
             </span>
           )}
-          {ev.isPromoted && (
+          {ev.isPromoted && !isPast && (
             <span className="rounded-full bg-amber-400/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-surface-950">
               Promoted
             </span>
@@ -184,7 +191,13 @@ function formatRelativeDate(iso: string): string {
   return formatDate(iso);
 }
 
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 const HERO_INTERVAL = 6000;
+const VIDEO_FALLBACK_DURATION = 60000;
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1920&q=60";
 
 function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate }: {
@@ -194,24 +207,39 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   onSearch: (e: React.FormEvent) => void;
   navigate: (path: string) => void;
 }) {
-  const heroImages = featured.filter((e) => e.imageUrl).slice(0, 6);
+  const heroImages = useMemo(() => featured.filter((e) => e.imageUrl).slice(0, 6), [featured]);
+  const count = heroImages.length;
   const [activeIdx, setActiveIdx] = useState(0);
+  const [videoEnabled, setVideoEnabled] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
-
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (heroImages.length <= 1) return;
-    timerRef.current = setInterval(() => {
-      setActiveIdx((prev) => (prev + 1) % heroImages.length);
-    }, HERO_INTERVAL);
-  }, [heroImages.length]);
-
-  useEffect(() => {
-    resetTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [resetTimer]);
+  const videoTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const activeEvent = heroImages[activeIdx];
+  const videoId = activeEvent?.heroVideoUrl ? extractYouTubeId(activeEvent.heroVideoUrl) : null;
+  const showVideo = videoEnabled && !!videoId;
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (videoTimerRef.current) clearTimeout(videoTimerRef.current);
+
+    if (count <= 1) return;
+
+    if (showVideo) {
+      // Video slide: wait longer before advancing
+      videoTimerRef.current = setTimeout(() => {
+        setActiveIdx((prev) => (prev + 1) % count);
+      }, VIDEO_FALLBACK_DURATION);
+    } else {
+      timerRef.current = setInterval(() => {
+        setActiveIdx((prev) => (prev + 1) % count);
+      }, HERO_INTERVAL);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (videoTimerRef.current) clearTimeout(videoTimerRef.current);
+    };
+  }, [count, activeIdx, showVideo]);
 
   return (
     <section className="relative min-h-[520px] overflow-hidden sm:min-h-[600px] lg:min-h-[680px]">
@@ -236,16 +264,49 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
         />
       )}
 
+      {/* YouTube video overlay */}
+      {showVideo && videoId && (
+        <div className="absolute inset-0" style={{ zIndex: 1, pointerEvents: "none", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: "50%", left: "50%", width: "180%", height: "180%", transform: "translate(-50%, -50%)" }}>
+            <iframe
+              key={`hp-yt-${videoId}-${activeIdx}`}
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&loop=1&playlist=${videoId}&start=0`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+              tabIndex={-1}
+              title="Hero Video"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Video toggle button */}
+      {videoId && (
+        <button
+          onClick={() => setVideoEnabled((p) => !p)}
+          className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white hover:scale-110"
+          style={{ zIndex: 10 }}
+          title={videoEnabled ? "Video deaktivieren" : "Video aktivieren"}
+        >
+          {videoEnabled ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          )}
+        </button>
+      )}
+
       {/* Dark overlays */}
-      <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,10,10,0.65) 0%, rgba(10,10,10,0.35) 30%, rgba(10,10,10,0.6) 55%, rgba(10,10,10,0.92) 75%, #0a0a0a 90%)" }} />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+      <div className="absolute inset-0" style={{ zIndex: 2, background: "linear-gradient(to bottom, rgba(10,10,10,0.65) 0%, rgba(10,10,10,0.35) 30%, rgba(10,10,10,0.6) 55%, rgba(10,10,10,0.92) 75%, #0a0a0a 90%)" }} />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" style={{ zIndex: 2 }} />
       {/* Extra bottom fade for seamless transition */}
       <div className="absolute inset-x-0 bottom-0 h-32" style={{ background: "linear-gradient(to bottom, transparent, #0a0a0a)" }} />
       <div className="absolute -left-40 top-20 h-80 w-80 rounded-full bg-accent-500/8 blur-[120px]" />
       <div className="absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-neon-purple/8 blur-[120px]" />
 
       {/* Content */}
-      <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-28 lg:pt-36">
+      <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-28 lg:pt-36" style={{ zIndex: 3 }}>
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-1.5 text-xs font-medium text-surface-300 backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse-slow" />
@@ -320,7 +381,7 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
             {heroImages.map((_, i) => (
               <button
                 key={i}
-                onClick={() => { setActiveIdx(i); resetTimer(); }}
+                onClick={() => setActiveIdx(i)}
                 className={`h-1 rounded-full transition-all duration-300 ${i === activeIdx ? "w-6 bg-accent-500" : "w-1.5 bg-white/20 hover:bg-white/40"}`}
               />
             ))}
@@ -339,109 +400,64 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   );
 }
 
+const FLAG_CDN = "https://hatscripts.github.io/circle-flags/flags";
+
 const COMMUNITY_ITEMS = [
-  { value: "turkish", label: "Türkisch", code: "tr" },
-  { value: "greek", label: "Griechisch", code: "gr" },
-  { value: "romanian", label: "Rumänisch", code: "ro" },
-  { value: "arabic", label: "Arabisch", code: "sa" },
-  { value: "polish", label: "Polnisch", code: "pl" },
-  { value: "italian", label: "Italienisch", code: "it" },
-  { value: "balkan", label: "Balkan", code: "rs" },
-  { value: "latin", label: "Lateinamerika", code: "br" },
-  { value: "african", label: "Afrikanisch", code: "ng" },
-  { value: "persian", label: "Persisch", code: "ir" },
-  { value: "kurdish", label: "Kurdisch", code: "iq" },
-  { value: "international", label: "International", code: "eu" },
+  { value: "turkish", label: "Türkisch", code: "tr", img: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=400&q=80" },
+  { value: "greek", label: "Griechisch", code: "gr", img: "https://images.unsplash.com/photo-1503152394-c571994fd383?auto=format&fit=crop&w=400&q=80" },
+  { value: "romanian", label: "Rumänisch", code: "ro", img: "https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?auto=format&fit=crop&w=400&q=80" },
+  { value: "arabic", label: "Arabisch", code: "sa", img: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?auto=format&fit=crop&w=400&q=80" },
+  { value: "polish", label: "Polnisch", code: "pl", img: "https://images.unsplash.com/photo-1519197924294-4ba991a11128?auto=format&fit=crop&w=400&q=80" },
+  { value: "italian", label: "Italienisch", code: "it", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=400&q=80" },
+  { value: "balkan", label: "Balkan", code: "rs", img: "https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?auto=format&fit=crop&w=400&q=80" },
+  { value: "latin", label: "Lateinamerika", code: "br", img: "https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=400&q=80" },
+  { value: "african", label: "Afrikanisch", code: "ng", img: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=400&q=80" },
+  { value: "persian", label: "Persisch", code: "ir", img: "https://images.unsplash.com/photo-1565711561500-49678a10a63f?auto=format&fit=crop&w=400&q=80" },
+  { value: "kurdish", label: "Kurdisch", code: "iq", img: "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&w=400&q=80" },
+  { value: "russian", label: "Russisch", code: "ru", img: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" },
+  { value: "spanish", label: "Spanisch", code: "es", img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&w=400&q=80" },
+  { value: "portuguese", label: "Portugiesisch", code: "pt", img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=400&q=80" },
+  { value: "asian", label: "Asiatisch", code: "cn", img: "https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=400&q=80" },
+  { value: "international", label: "International", code: "eu", img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=400&q=80" },
 ];
 
-const AUTO_SCROLL_INTERVAL = 3000;
-
 function CommunityCarousel() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(true);
-
-  const updateArrows = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 2);
-    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
-  }, []);
-
-  const scroll = useCallback((dir: 1 | -1) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 200, behavior: "smooth" });
-  }, []);
-
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
-        el.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        el.scrollBy({ left: 200, behavior: "smooth" });
-      }
-    }, AUTO_SCROLL_INTERVAL);
-  }, []);
-
-  useEffect(() => {
-    resetTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [resetTimer]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    updateArrows();
-    el.addEventListener("scroll", updateArrows, { passive: true });
-    return () => el.removeEventListener("scroll", updateArrows);
-  }, [updateArrows]);
-
-  function handleArrow(dir: 1 | -1) {
-    scroll(dir);
-    resetTimer();
-  }
-
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm font-medium text-surface-500">Communities</div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => handleArrow(-1)}
-            disabled={!canLeft}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-surface-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <button
-            onClick={() => handleArrow(1)}
-            disabled={!canRight}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-surface-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-extrabold tracking-tight text-white sm:text-2xl">Communities</h2>
+          <p className="mt-1 text-sm text-surface-400">Finde Events deiner Kultur</p>
         </div>
+        <Link to="/events" className="text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors">
+          Alle anzeigen &rarr;
+        </Link>
       </div>
-      <div
-        ref={scrollRef}
-        onMouseEnter={() => { if (timerRef.current) clearInterval(timerRef.current); }}
-        onMouseLeave={resetTimer}
-        className="flex gap-2 overflow-x-auto scrollbar-none"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
         {COMMUNITY_ITEMS.map((c) => (
           <Link
             key={c.value}
             to={`/events?community=${c.value}`}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm text-surface-400 transition-all duration-200 hover:border-white/[0.15] hover:bg-white/[0.06] hover:text-white"
+            className="group relative overflow-hidden rounded-2xl border border-white/[0.06] transition-all duration-300 hover:border-white/[0.15] hover:scale-[1.03] hover:shadow-lg hover:shadow-black/20"
           >
-            <img src={`https://hatscripts.github.io/circle-flags/flags/${c.code}.svg`} alt="" className="h-4 w-4 rounded-full" />
-            {c.label}
+            <div className="relative aspect-[3/4] w-full">
+              <img
+                src={c.img}
+                alt={c.label}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30 transition-opacity duration-300 group-hover:from-black/70 group-hover:via-black/30 group-hover:to-black/10" />
+              <div className="absolute inset-0 flex flex-col items-center justify-end p-3 pb-4">
+                <img
+                  src={`${FLAG_CDN}/${c.code}.svg`}
+                  alt={c.label}
+                  className="h-8 w-8 sm:h-10 sm:w-10 mb-1.5 rounded-full shadow-lg shadow-black/30 ring-2 ring-white/20 transition-transform duration-300 group-hover:scale-110"
+                />
+                <span className="text-xs font-bold text-center leading-tight drop-shadow-md text-white/90 group-hover:text-white transition-colors">
+                  {c.label}
+                </span>
+              </div>
+            </div>
           </Link>
         ))}
       </div>

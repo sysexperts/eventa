@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
 import { scrapeEventsFromUrl } from "./scraper.js";
+import { categorizeEvent } from "./categorizer.js";
 
 const SCRAPE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // check every hour which URLs need scraping
@@ -12,6 +13,9 @@ export async function scrapeMonitoredUrl(monitoredUrl: {
   id: string;
   url: string;
   userId: string;
+  isGlobal?: boolean;
+  defaultCategory?: string | null;
+  defaultCity?: string | null;
 }): Promise<{ newEvents: number; skipped: number; error?: string }> {
   console.log(`[Cronjob] Scraping monitored URL: ${monitoredUrl.url}`);
 
@@ -27,13 +31,19 @@ export async function scrapeMonitoredUrl(monitoredUrl: {
     }
 
     // Filter out already known events (by sourceUrl or title)
+    // For global sources: check ALL events globally to avoid cross-user duplicates
+    const scrapedWhere = monitoredUrl.isGlobal
+      ? { status: { in: ["PENDING" as const, "APPROVED" as const] } }
+      : { organizerId: monitoredUrl.userId, status: { in: ["PENDING" as const, "APPROVED" as const] } };
+    const eventsWhere = monitoredUrl.isGlobal ? {} : { organizerId: monitoredUrl.userId };
+
     const existingScraped = await prisma.scrapedEvent.findMany({
-      where: { organizerId: monitoredUrl.userId, status: { in: ["PENDING", "APPROVED"] } },
+      where: scrapedWhere,
       select: { sourceUrl: true, title: true },
     });
     const existingEvents = await prisma.event.findMany({
-      where: { organizerId: monitoredUrl.userId },
-      select: { title: true },
+      where: eventsWhere,
+      select: { title: true, startsAt: true },
     });
 
     const existingSourceUrls = new Set(existingScraped.map((e) => e.sourceUrl));
@@ -60,11 +70,11 @@ export async function scrapeMonitoredUrl(monitoredUrl: {
               title: ev.title,
               shortDescription: ev.shortDescription,
               description: ev.description,
-              category: "SONSTIGES",
+              category: (monitoredUrl.defaultCategory as any) || categorizeEvent(ev.title, ev.description),
               startsAt: ev.startsAt ? new Date(ev.startsAt) : null,
               endsAt: ev.endsAt ? new Date(ev.endsAt) : null,
               address: ev.address,
-              city: ev.city,
+              city: monitoredUrl.defaultCity || ev.city,
               country: ev.country,
               imageUrl: ev.imageUrl,
               ticketUrl: ev.ticketUrl,
@@ -133,24 +143,26 @@ async function runDailyScrapeJob() {
         { lastScrapedAt: { lt: new Date(Date.now() - SCRAPE_INTERVAL_MS) } },
       ],
     },
-    include: { user: { select: { isPartner: true } } },
+    include: { user: { select: { isPartner: true, isAdmin: true } } },
   });
 
-  // Only scrape for active partners
-  const partnerUrls = urlsToScrape.filter((u) => u.user.isPartner);
+  // Scrape for: active partners OR global sources (admin-managed)
+  const eligibleUrls = urlsToScrape.filter((u) => u.isGlobal || u.user.isPartner);
 
-  if (partnerUrls.length === 0) {
+  if (eligibleUrls.length === 0) {
     console.log("[Cronjob] No URLs to scrape.");
     return;
   }
 
-  console.log(`[Cronjob] Found ${partnerUrls.length} URLs to scrape`);
+  const globalCount = eligibleUrls.filter((u) => u.isGlobal).length;
+  const partnerCount = eligibleUrls.length - globalCount;
+  console.log(`[Cronjob] Found ${eligibleUrls.length} URLs to scrape (${globalCount} global, ${partnerCount} partner)`);
 
   let totalNew = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
 
-  for (const monitoredUrl of partnerUrls) {
+  for (const monitoredUrl of eligibleUrls) {
     const result = await scrapeMonitoredUrl(monitoredUrl);
     totalNew += result.newEvents;
     totalSkipped += result.skipped;

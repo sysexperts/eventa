@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { scrapeEventsFromUrl, type ScrapeProgress } from "../services/scraper.js";
+import { categorizeEvent } from "../services/categorizer.js";
 import { z } from "zod";
 
 export const scrapeRouter = Router();
@@ -85,7 +86,7 @@ scrapeRouter.get("/trigger-stream", requireAuth, async (req, res) => {
             title: ev.title,
             shortDescription: ev.shortDescription,
             description: ev.description,
-            category: "SONSTIGES",
+            category: categorizeEvent(ev.title, ev.description),
             startsAt: ev.startsAt ? new Date(ev.startsAt) : null,
             endsAt: ev.endsAt ? new Date(ev.endsAt) : null,
             address: ev.address,

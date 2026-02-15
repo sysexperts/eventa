@@ -64,6 +64,7 @@ function ScrapedEventEditModal({
   const [address, setAddress] = useState(event.address);
   const [city, setCity] = useState(event.city);
   const [imageUrl, setImageUrl] = useState(event.imageUrl || "");
+  const [heroVideoUrl, setHeroVideoUrl] = useState((event as any).heroVideoUrl || "");
   const [imagePosition, setImagePosition] = useState(50);
   const [ticketUrl, setTicketUrl] = useState(event.ticketUrl || "");
   const [price, setPrice] = useState(event.price || "");
@@ -78,7 +79,7 @@ function ScrapedEventEditModal({
         title, shortDescription, description, category,
         startsAt: fromLocalDatetime(startsAt),
         endsAt: fromLocalDatetime(endsAt),
-        address, city, imageUrl: imageUrl || undefined, ticketUrl: ticketUrl || undefined,
+        address, city, imageUrl: imageUrl || undefined, heroVideoUrl: heroVideoUrl || undefined, ticketUrl: ticketUrl || undefined,
         price: price || undefined,
       } as any);
       onSaved(res.event);
@@ -181,6 +182,12 @@ function ScrapedEventEditModal({
               <div>
                 <Label>Bild-URL</Label>
                 <Input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." />
+              </div>
+
+              <div>
+                <Label>Hero Video (YouTube-URL)</Label>
+                <Input type="url" value={heroVideoUrl} onChange={(e) => setHeroVideoUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                <p className="mt-1 text-[11px] text-surface-500">Optional: YouTube-Link für Video im Hero-Slider. Wird automatisch abgespielt (stumm).</p>
               </div>
 
               {imageUrl && (
