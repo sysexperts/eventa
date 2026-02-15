@@ -299,56 +299,70 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
       <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" style={{ zIndex: 2 }} />
       {/* Extra bottom fade for seamless transition */}
       <div className="absolute inset-x-0 bottom-0 h-32" style={{ background: "linear-gradient(to bottom, transparent, #0a0a0a)" }} />
-      <div className="absolute -left-40 top-20 h-80 w-80 rounded-full bg-accent-500/8 blur-[120px]" />
-      <div className="absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-neon-purple/8 blur-[120px]" />
+      <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-accent-500/10 blur-[140px] animate-glow-pulse" />
+      <div className="absolute -right-40 bottom-20 h-96 w-96 rounded-full bg-neon-purple/10 blur-[140px] animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
+      <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-neon-cyan/5 blur-[100px] animate-float" />
 
       {/* Content */}
       <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-28 lg:pt-36" style={{ zIndex: 3 }}>
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-1.5 text-xs font-medium text-surface-300 backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse-slow" />
+          {/* Animated badge */}
+          <div className="mb-6 animate-fade-in inline-flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-5 py-2 text-xs font-medium text-surface-300 backdrop-blur-xl shadow-lg shadow-black/10">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-green opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-neon-green" />
+            </span>
             Neue Events in deiner Nähe
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl drop-shadow-lg">
-            Erlebe deine Stadt
-            <span className="block text-gradient">wie nie zuvor</span>
+          {/* Headline with stagger animation */}
+          <h1 className="animate-slide-up text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <span className="drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]">Erlebe deine Stadt</span>
+            <span className="mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg">
+              wie nie zuvor
+            </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-xl text-base text-surface-300 sm:text-lg drop-shadow">
-            Konzerte, Theater, Lesungen, Comedy und mehr – entdecke Veranstaltungen in deiner Nähe.
+          {/* Subtitle */}
+          <p className="animate-slide-up-delay mx-auto mt-6 max-w-xl text-base leading-relaxed text-surface-300/90 sm:text-lg">
+            Konzerte, Theater, Lesungen, Comedy und mehr –
+            <span className="text-white/80 font-medium"> entdecke Veranstaltungen</span> in deiner Nähe.
           </p>
 
-          {/* Search Bar */}
-          <form onSubmit={onSearch} className="mx-auto mt-10 max-w-2xl">
-            <div className="relative flex items-center">
-              <div className="pointer-events-none absolute left-4 text-surface-400">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          {/* Search Bar with glassmorphism */}
+          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mx-auto mt-10 max-w-2xl">
+            <div className="group/search relative">
+              {/* Glow effect behind search bar */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-accent-500/20 via-neon-purple/10 to-accent-500/20 opacity-0 blur-xl transition-opacity duration-500 group-focus-within/search:opacity-100" />
+              <div className="relative flex items-center">
+                <div className="pointer-events-none absolute left-5 text-surface-400 transition-colors duration-300 group-focus-within/search:text-accent-400">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Suche nach Events, Künstlern, Orten..."
+                  className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] py-4.5 pl-14 pr-36 text-[15px] text-white placeholder-surface-500 outline-none backdrop-blur-2xl transition-all duration-300 focus:border-accent-500/40 focus:bg-white/[0.1] focus:shadow-[0_0_30px_rgba(51,102,255,0.12)] focus:ring-1 focus:ring-accent-500/20"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all duration-300 hover:shadow-accent-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Suchen
+                </button>
               </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Suche nach Events, Künstlern, Orten..."
-                className="w-full rounded-full border border-white/15 bg-black/30 py-4 pl-12 pr-36 text-sm text-white placeholder-surface-500 outline-none backdrop-blur-xl transition-all focus:border-accent-500/50 focus:bg-black/40 focus:ring-1 focus:ring-accent-500/30"
-              />
-              <button
-                type="submit"
-                className="absolute right-2 rounded-full bg-accent-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400 hover:shadow-accent-500/40"
-              >
-                Suchen
-              </button>
             </div>
 
             {/* Quick search suggestions */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
-              <span className="text-surface-500">Beliebt:</span>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+              <span className="text-surface-500/80 font-medium">Beliebt:</span>
               {["Konzert", "Comedy", "Theater", "Open Air", "DJ"].map((term) => (
                 <button
                   key={term}
                   type="button"
                   onClick={() => navigate(`/events?q=${encodeURIComponent(term)}`)}
-                  className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1 text-surface-400 backdrop-blur-sm transition-all hover:border-white/15 hover:bg-black/30 hover:text-white"
+                  className="rounded-full border border-white/[0.06] bg-white/[0.04] px-3.5 py-1.5 text-surface-400 backdrop-blur-sm transition-all duration-200 hover:border-accent-500/30 hover:bg-accent-500/10 hover:text-white hover:shadow-sm hover:shadow-accent-500/10"
                 >
                   {term}
                 </button>

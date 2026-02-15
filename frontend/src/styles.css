@@ -51,17 +51,26 @@ body {
 
 /* Gradient text */
 .text-gradient {
-  background: linear-gradient(135deg, #3366ff, #00e5ff);
+  background: linear-gradient(135deg, #8fb2ff, #b366ff, #5c8aff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmerCSS 4s ease-in-out infinite;
+}
+
+.text-gradient-warm {
+  background: linear-gradient(135deg, #ff3366, #b366ff);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.text-gradient-warm {
-  background: linear-gradient(135deg, #ff3366, #b366ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@keyframes textShimmerCSS {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Glow effects */
@@ -71,6 +80,11 @@ body {
 
 .glow-neon {
   box-shadow: 0 0 20px rgba(0, 255, 135, 0.3), 0 0 60px rgba(0, 255, 135, 0.1);
+}
+
+/* Search bar focus glow */
+.search-glow:focus-within {
+  box-shadow: 0 0 0 1px rgba(51, 102, 255, 0.2), 0 0 30px rgba(51, 102, 255, 0.12);
 }
 
 /* Noise texture overlay */
