@@ -208,6 +208,7 @@ export type Community = {
   imageUrl?: string | null;
   bannerUrl?: string | null;
   country?: string | null;
+  flagCode?: string | null;
   language?: string | null;
   isActive?: boolean;
   // Location & Contact

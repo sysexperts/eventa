@@ -432,64 +432,121 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
 
 const FLAG_CDN = "https://hatscripts.github.io/circle-flags/flags";
 
-const COMMUNITY_ITEMS = [
-  { value: "turkish", label: "Türkisch", code: "tr", img: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=400&q=80" },
-  { value: "greek", label: "Griechisch", code: "gr", img: "https://images.unsplash.com/photo-1503152394-c571994fd383?auto=format&fit=crop&w=400&q=80" },
-  { value: "romanian", label: "Rumänisch", code: "ro", img: "https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?auto=format&fit=crop&w=400&q=80" },
-  { value: "arabic", label: "Arabisch", code: "sa", img: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?auto=format&fit=crop&w=400&q=80" },
-  { value: "polish", label: "Polnisch", code: "pl", img: "https://images.unsplash.com/photo-1519197924294-4ba991a11128?auto=format&fit=crop&w=400&q=80" },
-  { value: "italian", label: "Italienisch", code: "it", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=400&q=80" },
-  { value: "balkan", label: "Balkan", code: "rs", img: "https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?auto=format&fit=crop&w=400&q=80" },
-  { value: "latin", label: "Lateinamerika", code: "br", img: "https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=400&q=80" },
-  { value: "african", label: "Afrikanisch", code: "ng", img: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=400&q=80" },
-  { value: "persian", label: "Persisch", code: "ir", img: "https://images.unsplash.com/photo-1565711561500-49678a10a63f?auto=format&fit=crop&w=400&q=80" },
-  { value: "kurdish", label: "Kurdisch", code: "iq", img: "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&w=400&q=80" },
-  { value: "russian", label: "Russisch", code: "ru", img: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" },
-  { value: "spanish", label: "Spanisch", code: "es", img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&w=400&q=80" },
-  { value: "portuguese", label: "Portugiesisch", code: "pt", img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=400&q=80" },
-  { value: "asian", label: "Asiatisch", code: "cn", img: "https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=400&q=80" },
-  { value: "international", label: "International", code: "eu", img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=400&q=80" },
+const FALLBACK_COMMUNITIES = [
+  { slug: "turkish", name: "Türkisch", flagCode: "tr", bannerUrl: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=400&q=80" },
+  { slug: "greek", name: "Griechisch", flagCode: "gr", bannerUrl: "https://images.unsplash.com/photo-1503152394-c571994fd383?auto=format&fit=crop&w=400&q=80" },
+  { slug: "romanian", name: "Rumänisch", flagCode: "ro", bannerUrl: "https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?auto=format&fit=crop&w=400&q=80" },
+  { slug: "arabic", name: "Arabisch", flagCode: "sa", bannerUrl: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?auto=format&fit=crop&w=400&q=80" },
+  { slug: "polish", name: "Polnisch", flagCode: "pl", bannerUrl: "https://images.unsplash.com/photo-1519197924294-4ba991a11128?auto=format&fit=crop&w=400&q=80" },
+  { slug: "italian", name: "Italienisch", flagCode: "it", bannerUrl: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=400&q=80" },
+  { slug: "balkan", name: "Balkan", flagCode: "rs", bannerUrl: "https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?auto=format&fit=crop&w=400&q=80" },
+  { slug: "latin", name: "Lateinamerika", flagCode: "br", bannerUrl: "https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=400&q=80" },
+  { slug: "african", name: "Afrikanisch", flagCode: "ng", bannerUrl: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=400&q=80" },
+  { slug: "persian", name: "Persisch", flagCode: "ir", bannerUrl: "https://images.unsplash.com/photo-1565711561500-49678a10a63f?auto=format&fit=crop&w=400&q=80" },
+  { slug: "kurdish", name: "Kurdisch", flagCode: "iq", bannerUrl: "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&w=400&q=80" },
+  { slug: "russian", name: "Russisch", flagCode: "ru", bannerUrl: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" },
+  { slug: "spanish", name: "Spanisch", flagCode: "es", bannerUrl: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&w=400&q=80" },
+  { slug: "portuguese", name: "Portugiesisch", flagCode: "pt", bannerUrl: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=400&q=80" },
+  { slug: "asian", name: "Asiatisch", flagCode: "cn", bannerUrl: "https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=400&q=80" },
+  { slug: "international", name: "International", flagCode: "eu", bannerUrl: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=400&q=80" },
 ];
 
 function CommunityCarousel() {
+  const [communities, setCommunities] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.communities.list()
+      .then((r) => {
+        if (r.communities && r.communities.length > 0) {
+          setCommunities(r.communities);
+        } else {
+          setCommunities(FALLBACK_COMMUNITIES as any[]);
+        }
+      })
+      .catch(() => setCommunities(FALLBACK_COMMUNITIES as any[]));
+  }, []);
+
+  const items = communities.length > 0 ? communities : FALLBACK_COMMUNITIES;
+
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
+    <section className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      {/* Section header */}
+      <div className="mb-8 flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-white sm:text-2xl">Communities</h2>
-          <p className="mt-1 text-sm text-surface-400">Finde Events deiner Kultur</p>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1 text-[11px] font-medium uppercase tracking-wider text-accent-400 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-400 animate-pulse" />
+            Kulturen entdecken
+          </div>
+          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            Communities
+          </h2>
+          <p className="mt-1.5 text-sm text-surface-400">Finde Events deiner Kultur und Community</p>
         </div>
-        <Link to="/events" className="text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors">
-          Alle anzeigen &rarr;
+        <Link to="/events" className="group flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-medium text-accent-400 backdrop-blur-sm transition-all duration-300 hover:border-accent-500/30 hover:bg-accent-500/10 hover:text-accent-300">
+          Alle anzeigen
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-0.5"><path d="m9 18 6-6-6-6"/></svg>
         </Link>
       </div>
+
+      {/* Community grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
-        {COMMUNITY_ITEMS.map((c) => (
-          <Link
-            key={c.value}
-            to={`/events?community=${c.value}`}
-            className="group relative overflow-hidden rounded-2xl border border-white/[0.06] transition-all duration-300 hover:border-white/[0.15] hover:scale-[1.03] hover:shadow-lg hover:shadow-black/20"
-          >
-            <div className="relative aspect-[3/4] w-full">
-              <img
-                src={c.img}
-                alt={c.label}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30 transition-opacity duration-300 group-hover:from-black/70 group-hover:via-black/30 group-hover:to-black/10" />
-              <div className="absolute inset-0 flex flex-col items-center justify-end p-3 pb-4">
-                <img
-                  src={`${FLAG_CDN}/${c.code}.svg`}
-                  alt={c.label}
-                  className="h-8 w-8 sm:h-10 sm:w-10 mb-1.5 rounded-full shadow-lg shadow-black/30 ring-2 ring-white/20 transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className="text-xs font-bold text-center leading-tight drop-shadow-md text-white/90 group-hover:text-white transition-colors">
-                  {c.label}
-                </span>
+        {items.map((c: any) => {
+          const flag = c.flagCode || c.country || "";
+          const img = c.bannerUrl || c.imageUrl || "";
+          return (
+            <Link
+              key={c.slug}
+              to={`/events?community=${c.slug}`}
+              className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface-900/50 transition-all duration-500 hover:border-accent-500/30 hover:scale-[1.04] hover:shadow-xl hover:shadow-accent-500/10"
+            >
+              <div className="relative aspect-[3/4] w-full overflow-hidden">
+                {/* Background image */}
+                {img ? (
+                  <img
+                    src={img}
+                    alt={c.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-all duration-700 group-hover:scale-115 group-hover:brightness-110"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-surface-800 to-surface-900" />
+                )}
+
+                {/* Gradient overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-accent-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+                {/* Glow effect on hover */}
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.08] transition-all duration-500 group-hover:ring-accent-500/20" />
+
+                {/* Content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-end p-3 pb-4">
+                  {/* Flag */}
+                  {flag && (
+                    <div className="relative mb-2">
+                      <div className="absolute -inset-1 rounded-full bg-accent-500/20 blur-md opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <img
+                        src={`${FLAG_CDN}/${flag.toLowerCase()}.svg`}
+                        alt={c.name}
+                        className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-xl shadow-black/40 ring-2 ring-white/20 transition-all duration-500 group-hover:scale-110 group-hover:ring-accent-400/40 group-hover:shadow-accent-500/20"
+                      />
+                    </div>
+                  )}
+                  {/* Name */}
+                  <span className="text-xs font-bold text-center leading-tight text-white/90 drop-shadow-lg transition-colors duration-300 group-hover:text-white">
+                    {c.name}
+                  </span>
+                  {/* Member count */}
+                  {c._count?.members > 0 && (
+                    <span className="mt-0.5 text-[10px] text-surface-400/80 font-medium">
+                      {c._count.members} Mitglieder
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

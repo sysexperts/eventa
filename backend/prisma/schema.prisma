@@ -333,6 +333,7 @@ model Community {
   imageUrl    String?
   bannerUrl   String?
   country     String?
+  flagCode    String?
   language    String?
   isActive    Boolean  @default(true)
 

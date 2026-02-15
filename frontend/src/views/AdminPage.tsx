@@ -60,7 +60,7 @@ export function AdminPage() {
   const [communityMembersLoading, setCommunityMembersLoading] = useState(false);
   const [newCommunity, setNewCommunity] = useState({
     slug: "", name: "", shortDescription: "", description: "",
-    country: "", language: "", city: "", region: "", timezone: "",
+    country: "", flagCode: "", language: "", city: "", region: "", timezone: "",
     contactEmail: "", website: "", phone: "",
     instagram: "", facebook: "", twitter: "", linkedin: "", youtube: "", discord: "", telegram: "", tiktok: "",
     category: "", tags: "" as string, visibility: "PUBLIC", rules: "", welcomeMessage: "",
@@ -654,6 +654,16 @@ export function AdminPage() {
                   <Input value={newCommunity.country} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, country: e.target.value }))} placeholder="DE" />
                 </div>
                 <div>
+                  <Label>Flaggen-Code (ISO)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={newCommunity.flagCode} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, flagCode: e.target.value }))} placeholder="z.B. tr, gr, rs" />
+                    {newCommunity.flagCode && (
+                      <img src={`https://hatscripts.github.io/circle-flags/flags/${newCommunity.flagCode.toLowerCase()}.svg`} alt="" className="h-8 w-8 rounded-full ring-1 ring-white/10" />
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-surface-600">2-stelliger ISO-Code fuer die Flagge (falls abweichend vom Land)</p>
+                </div>
+                <div>
                   <Label>Sprache</Label>
                   <Input value={newCommunity.language} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, language: e.target.value }))} placeholder="de" />
                 </div>
@@ -735,7 +745,7 @@ export function AdminPage() {
                       slug: newCommunity.slug.trim(),
                       name: newCommunity.name.trim(),
                     };
-                    const optStr = ["shortDescription","description","imageUrl","bannerUrl","country","language","city","region","timezone","contactEmail","website","phone","instagram","facebook","twitter","linkedin","youtube","discord","telegram","tiktok","category","rules","welcomeMessage","color"] as const;
+                    const optStr = ["shortDescription","description","imageUrl","bannerUrl","country","flagCode","language","city","region","timezone","contactEmail","website","phone","instagram","facebook","twitter","linkedin","youtube","discord","telegram","tiktok","category","rules","welcomeMessage","color"] as const;
                     for (const k of optStr) { if (newCommunity[k]?.trim()) payload[k] = newCommunity[k].trim(); }
                     if (newCommunity.visibility !== "PUBLIC") payload.visibility = newCommunity.visibility;
                     if (newCommunity.tags.trim()) payload.tags = newCommunity.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
@@ -743,7 +753,7 @@ export function AdminPage() {
                     await api.admin.createCommunity(payload);
                     setNewCommunity({
                       slug: "", name: "", shortDescription: "", description: "",
-                      country: "", language: "", city: "", region: "", timezone: "",
+                      country: "", flagCode: "", language: "", city: "", region: "", timezone: "",
                       contactEmail: "", website: "", phone: "",
                       instagram: "", facebook: "", twitter: "", linkedin: "", youtube: "", discord: "", telegram: "", tiktok: "",
                       category: "", tags: "", visibility: "PUBLIC", rules: "", welcomeMessage: "",
