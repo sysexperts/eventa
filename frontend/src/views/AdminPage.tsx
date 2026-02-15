@@ -56,7 +56,8 @@ export function AdminPage() {
     category: "", tags: "" as string, visibility: "PUBLIC", rules: "", welcomeMessage: "",
     maxMembers: "" as string, color: "", imageUrl: "", bannerUrl: "",
   });
-  const [roleAssign, setRoleAssign] = useState({ userId: "", role: "MEMBER" });
+  const [roleAssign, setRoleAssign] = useState({ userId: "", userName: "", role: "MEMBER" });
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
 
   async function loadUsers() {
@@ -402,9 +403,20 @@ export function AdminPage() {
             Communities verwalten. Du kannst neue Communities erstellen, Mitglieder verwalten und Rollen zuweisen.
           </p>
 
-          {/* Create new community */}
+          {/* Create new community toggle */}
+          {!showCreateForm ? (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="w-full rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm font-medium text-accent-400 hover:bg-white/[0.04] hover:border-accent-500/30 transition-all"
+            >
+              + Neue Community erstellen
+            </button>
+          ) : (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 space-y-5">
-            <div className="text-base font-semibold text-white">Neue Community erstellen</div>
+            <div className="flex items-center justify-between">
+              <div className="text-base font-semibold text-white">Neue Community erstellen</div>
+              <button onClick={() => setShowCreateForm(false)} className="text-xs text-surface-500 hover:text-white transition-colors">Abbrechen</button>
+            </div>
 
             {/* Section: Grunddaten */}
             <div className="space-y-1.5">
@@ -597,6 +609,7 @@ export function AdminPage() {
               <span className="text-xs text-surface-500">* Pflichtfelder: Slug und Name</span>
             </div>
           </div>
+          )}
 
           {/* Communities list */}
           {communitiesLoading ? (
@@ -671,70 +684,50 @@ export function AdminPage() {
                           </div>
                         </div>
 
-                        {/* Assign role */}
+                        {/* Mitglied hinzufuegen */}
                         <div>
-                          <div className="text-sm font-medium text-white mb-2">Rolle zuweisen</div>
-                          <div className="flex gap-2">
-                            <Input
-                              value={roleAssign.userId}
-                              onChange={(e: any) => setRoleAssign((p) => ({ ...p, userId: e.target.value }))}
-                              placeholder="User-ID"
-                            />
-                            <select
-                              value={roleAssign.role}
-                              onChange={(e: any) => setRoleAssign((p) => ({ ...p, role: e.target.value }))}
-                              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none"
-                            >
-                              <option value="MEMBER">Member</option>
-                              <option value="MODERATOR">Moderator</option>
-                              <option value="ADMIN">Admin</option>
-                            </select>
-                            <Button
-                              onClick={async () => {
-                                if (!roleAssign.userId.trim()) return;
-                                try {
-                                  await api.admin.assignCommunityRole(c.id, roleAssign.userId.trim(), roleAssign.role);
-                                  setRoleAssign({ userId: "", role: "MEMBER" });
-                                  await loadCommunityMembers(c.id);
-                                } catch (e: any) { alert(e?.message || "Fehler."); }
-                              }}
-                              disabled={!roleAssign.userId.trim()}
-                            >
-                              Zuweisen
-                            </Button>
-                          </div>
-                        </div>
+                          <div className="text-sm font-medium text-white mb-2">Mitglied hinzufuegen</div>
+                          <p className="text-xs text-surface-500 mb-3">Suche nach einem Benutzer und weise ihm eine Rolle in dieser Community zu.</p>
 
-                        {/* User search for role assignment */}
-                        <div>
-                          <div className="text-sm font-medium text-white mb-2">User suchen</div>
-                          <div className="flex gap-2">
+                          {/* Step 1: User suchen */}
+                          <div className="flex gap-2 mb-2">
                             <Input
                               value={userSearch}
                               onChange={(e: any) => setUserSearch(e.target.value)}
-                              placeholder="Name oder E-Mail..."
+                              placeholder="Name oder E-Mail eingeben..."
                               onKeyDown={(e: any) => { if (e.key === "Enter") searchUsers(userSearch); }}
                             />
                             <Button onClick={() => searchUsers(userSearch)} disabled={searching}>
                               {searching ? "..." : "Suchen"}
                             </Button>
                           </div>
+
+                          {/* Search results */}
                           {searchResults.length > 0 && (
-                            <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                            <div className="mb-3 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-white/[0.06] bg-white/[0.01] p-2">
                               {searchResults.map((u) => (
-                                <div key={u.id} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs">
-                                  <div>
-                                    <span className="font-medium text-white">{u.name}</span>
-                                    <span className="ml-2 text-surface-500">{u.email}</span>
-                                    <span className="ml-2 text-surface-600">ID: {u.id.slice(0, 8)}...</span>
+                                <button
+                                  key={u.id}
+                                  onClick={() => { setRoleAssign((p: any) => ({ ...p, userId: u.id, userName: u.name + " (" + u.email + ")" })); }}
+                                  className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2 text-xs transition-all ${
+                                    roleAssign.userId === u.id
+                                      ? "bg-accent-500/15 border border-accent-500/30"
+                                      : "hover:bg-white/[0.04] border border-transparent"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-500/10 text-[10px] font-bold text-accent-400">
+                                      {u.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-white">{u.name}</span>
+                                      <span className="ml-2 text-surface-500">{u.email}</span>
+                                    </div>
                                   </div>
-                                  <button
-                                    onClick={() => setRoleAssign((p) => ({ ...p, userId: u.id }))}
-                                    className="rounded bg-accent-500/20 px-2 py-1 text-accent-400 hover:bg-accent-500/30"
-                                  >
-                                    Auswaehlen
-                                  </button>
-                                </div>
+                                  {roleAssign.userId === u.id && (
+                                    <span className="text-[10px] font-bold text-accent-400">AUSGEWAEHLT</span>
+                                  )}
+                                </button>
                               ))}
                               {searchPages > 1 && (
                                 <div className="flex items-center justify-center gap-2 pt-2">
@@ -743,6 +736,44 @@ export function AdminPage() {
                                   <button disabled={searchPage >= searchPages} onClick={() => searchUsers(userSearch, searchPage + 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">Weiter →</button>
                                 </div>
                               )}
+                            </div>
+                          )}
+
+                          {/* Step 2: Ausgewaehlter User + Rolle + Zuweisen */}
+                          {roleAssign.userId && (
+                            <div className="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/5 px-3 py-2">
+                              <div className="flex-1 text-xs">
+                                <span className="text-surface-500">Ausgewaehlt:</span>{" "}
+                                <span className="font-medium text-white">{roleAssign.userName || roleAssign.userId}</span>
+                              </div>
+                              <select
+                                value={roleAssign.role}
+                                onChange={(e: any) => setRoleAssign((p: any) => ({ ...p, role: e.target.value }))}
+                                className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs text-white focus:border-accent-500 focus:outline-none"
+                              >
+                                <option value="MEMBER">Mitglied</option>
+                                <option value="MODERATOR">Moderator</option>
+                                <option value="ADMIN">Admin</option>
+                              </select>
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    await api.admin.assignCommunityRole(c.id, roleAssign.userId.trim(), roleAssign.role);
+                                    setRoleAssign({ userId: "", userName: "", role: "MEMBER" });
+                                    setSearchResults([]);
+                                    setUserSearch("");
+                                    await loadCommunityMembers(c.id);
+                                  } catch (e: any) { alert(e?.message || "Fehler."); }
+                                }}
+                              >
+                                Hinzufuegen
+                              </Button>
+                              <button
+                                onClick={() => setRoleAssign({ userId: "", userName: "", role: "MEMBER" })}
+                                className="text-xs text-surface-500 hover:text-white"
+                              >
+                                ✕
+                              </button>
                             </div>
                           )}
                         </div>
