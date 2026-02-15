@@ -308,6 +308,7 @@ const communityFieldsSchema = {
   bannerUrl: z.string().url().optional().nullable(),
   country: z.string().max(10).optional().nullable(),
   flagCode: z.string().max(10).optional().nullable(),
+  flagUrl: z.string().url().optional().nullable(),
   language: z.string().max(10).optional().nullable(),
   city: z.string().max(100).optional().nullable(),
   region: z.string().max(100).optional().nullable(),

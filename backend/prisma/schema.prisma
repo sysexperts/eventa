@@ -334,6 +334,7 @@ model Community {
   bannerUrl   String?
   country     String?
   flagCode    String?
+  flagUrl     String?
   language    String?
   isActive       Boolean  @default(true)
   showOnHomepage Boolean  @default(false)

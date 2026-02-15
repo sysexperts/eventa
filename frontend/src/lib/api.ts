@@ -209,6 +209,7 @@ export type Community = {
   bannerUrl?: string | null;
   country?: string | null;
   flagCode?: string | null;
+  flagUrl?: string | null;
   language?: string | null;
   isActive?: boolean;
   showOnHomepage?: boolean;

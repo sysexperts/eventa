@@ -452,7 +452,7 @@ const CULTURES = [
 ];
 
 function CommunityCarousel() {
-  const fallback = CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, img: c.img }));
+  const fallback = CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, flagUrl: "", img: c.img }));
   const [items, setItems] = useState(fallback);
 
   useEffect(() => {
@@ -470,6 +470,7 @@ function CommunityCarousel() {
               slug: db.slug,
               name: db.name || fallbackC?.name || db.slug,
               flag: (db.flagCode || db.country || fallbackC?.flag || "eu").toLowerCase(),
+              flagUrl: db.flagUrl || "",
               img: db.bannerUrl || db.imageUrl || fallbackC?.img || "",
             };
           })
@@ -523,7 +524,7 @@ function CommunityCarousel() {
                 <div className="relative transition-transform duration-500 ease-out group-hover:-translate-y-1">
                   <div className="absolute -inset-3 rounded-full bg-white/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-80" />
                   <img
-                    src={`${FLAG_CDN}/${c.flag.toLowerCase()}.svg`}
+                    src={c.flagUrl || `${FLAG_CDN}/${c.flag.toLowerCase()}.svg`}
                     alt=""
                     className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl shadow-black/60 ring-[3px] ring-white/30 transition-all duration-500 group-hover:ring-white/60 group-hover:shadow-black/40"
                   />

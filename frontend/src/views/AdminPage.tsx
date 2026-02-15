@@ -882,8 +882,26 @@ export function AdminPage() {
                                     }
                                   }}
                                 />
-                                {(c.flagCode || c.country) && (
-                                  <img src={`https://hatscripts.github.io/circle-flags/flags/${(c.flagCode || c.country || "").toLowerCase()}.svg`} alt="" className="h-8 w-8 shrink-0 rounded-full ring-1 ring-white/10" />
+                                {(c.flagUrl || c.flagCode || c.country) && (
+                                  <img src={c.flagUrl || `https://hatscripts.github.io/circle-flags/flags/${(c.flagCode || c.country || "").toLowerCase()}.svg`} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Flaggen-Bild URL</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  defaultValue={c.flagUrl || ""}
+                                  placeholder="https://... (ueberschreibt ISO-Code)"
+                                  onBlur={async (e: any) => {
+                                    const v = e.target.value.trim() || null;
+                                    if (v !== (c.flagUrl || null)) {
+                                      try { await api.admin.updateCommunity(c.id, { flagUrl: v }); await loadCommunities(); } catch { alert("Fehler."); }
+                                    }
+                                  }}
+                                />
+                                {c.flagUrl && (
+                                  <img src={c.flagUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
                                 )}
                               </div>
                             </div>
