@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type AdminUser, type GlobalSource, type EventCategory, type Community, type CommunityMember } from "../lib/api";
+import { api, type AdminUser, type GlobalSource, type EventCategory, type Community, type CommunityMember, type CategoryItem } from "../lib/api";
 import { useAuth } from "../state/auth";
 import { categoryLabel } from "../lib/format";
 import { Button, Input, Label } from "../ui/components";
@@ -20,7 +20,7 @@ const ALL_CATEGORIES: EventCategory[] = [
 
 export function AdminPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"users" | "sources" | "communities" | "settings">("users");
+  const [tab, setTab] = useState<"users" | "sources" | "communities" | "categories" | "settings">("users");
 
   // Site settings state
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
@@ -69,6 +69,13 @@ export function AdminPage() {
   const [roleAssign, setRoleAssign] = useState({ userId: "", userName: "", role: "MEMBER" });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
+
+  // Categories state
+  const [categoryItems, setCategoryItems] = useState<CategoryItem[]>([]);
+  const [categoriesItemsLoading, setCategoriesItemsLoading] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState({ slug: "", name: "", eventCategory: "", imageUrl: "", iconUrl: "", icon: "", sortOrder: "0" });
 
   async function loadUsers() {
     try {
@@ -151,11 +158,21 @@ export function AdminPage() {
     } finally { setSettingsSaving(false); }
   }
 
+  async function loadCategoryItems() {
+    setCategoriesItemsLoading(true);
+    try {
+      const res = await api.admin.listCategories();
+      setCategoryItems(res.categories);
+    } catch { setCategoryItems([]); }
+    finally { setCategoriesItemsLoading(false); }
+  }
+
   useEffect(() => {
     loadUsers();
     loadSources();
     loadCommunities();
     loadSettings();
+    loadCategoryItems();
   }, []);
 
   if (!user?.isAdmin) {
@@ -307,6 +324,14 @@ export function AdminPage() {
           Communities ({communities.length})
         </button>
         <button
+          onClick={() => setTab("categories")}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "categories" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
+          }`}
+        >
+          Kategorien ({categoryItems.length})
+        </button>
+        <button
           onClick={() => setTab("sources")}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             tab === "sources" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
@@ -323,6 +348,258 @@ export function AdminPage() {
           Einstellungen
         </button>
       </div>
+
+      {/* ─── Categories Tab ─── */}
+      {tab === "categories" && (<>
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-white">Kategorien verwalten</h2>
+            <Button onClick={() => setShowCreateCategory(!showCreateCategory)}>
+              {showCreateCategory ? "Abbrechen" : "+ Neue Kategorie"}
+            </Button>
+          </div>
+
+          {showCreateCategory && (
+            <div className="mb-6 space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Name *</Label>
+                  <Input value={newCategory.name} onChange={(e: any) => setNewCategory({ ...newCategory, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })} placeholder="z.B. Konzerte" />
+                </div>
+                <div>
+                  <Label>Slug *</Label>
+                  <Input value={newCategory.slug} onChange={(e: any) => setNewCategory({ ...newCategory, slug: e.target.value })} placeholder="z.B. konzerte" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Event-Kategorie (Enum)</Label>
+                  <select
+                    value={newCategory.eventCategory}
+                    onChange={(e: any) => setNewCategory({ ...newCategory, eventCategory: e.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none"
+                  >
+                    <option value="">-- Keine --</option>
+                    {ALL_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{categoryLabel(c)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Icon (Emoji)</Label>
+                  <Input value={newCategory.icon} onChange={(e: any) => setNewCategory({ ...newCategory, icon: e.target.value })} placeholder="z.B. 🎵" />
+                </div>
+              </div>
+              <div>
+                <Label>Bild-URL</Label>
+                <Input value={newCategory.imageUrl} onChange={(e: any) => setNewCategory({ ...newCategory, imageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." />
+              </div>
+              <div>
+                <Label>Icon-URL (optional, ueberschreibt Emoji)</Label>
+                <Input value={newCategory.iconUrl} onChange={(e: any) => setNewCategory({ ...newCategory, iconUrl: e.target.value })} placeholder="https://..." />
+              </div>
+              <div>
+                <Label>Sortierung</Label>
+                <Input type="number" value={newCategory.sortOrder} onChange={(e: any) => setNewCategory({ ...newCategory, sortOrder: e.target.value })} placeholder="0" />
+              </div>
+              <Button onClick={async () => {
+                if (!newCategory.slug || !newCategory.name) return alert("Name und Slug sind Pflicht.");
+                try {
+                  await api.admin.createCategory({
+                    slug: newCategory.slug,
+                    name: newCategory.name,
+                    eventCategory: newCategory.eventCategory || null,
+                    imageUrl: newCategory.imageUrl || null,
+                    iconUrl: newCategory.iconUrl || null,
+                    icon: newCategory.icon || null,
+                    sortOrder: parseInt(newCategory.sortOrder) || 0,
+                    showOnHomepage: true,
+                  });
+                  setNewCategory({ slug: "", name: "", eventCategory: "", imageUrl: "", iconUrl: "", icon: "", sortOrder: "0" });
+                  setShowCreateCategory(false);
+                  await loadCategoryItems();
+                } catch { alert("Fehler beim Erstellen."); }
+              }}>
+                Kategorie erstellen
+              </Button>
+            </div>
+          )}
+
+          {categoriesItemsLoading ? (
+            <p className="text-sm text-surface-400">Lade Kategorien...</p>
+          ) : categoryItems.length === 0 ? (
+            <p className="text-sm text-surface-500">Keine Kategorien vorhanden.</p>
+          ) : (
+            <div className="space-y-2">
+              {categoryItems.map((cat) => (
+                <div key={cat.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.02]"
+                    onClick={() => setExpandedCategory(expandedCategory === cat.id ? null : cat.id)}
+                  >
+                    {cat.imageUrl && (
+                      <img src={cat.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover ring-1 ring-white/10" />
+                    )}
+                    {!cat.imageUrl && cat.icon && (
+                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] text-lg">{cat.icon}</span>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-white">{cat.name}</span>
+                        <span className="text-[10px] text-surface-500 font-mono">/{cat.slug}</span>
+                        {cat.eventCategory && (
+                          <span className="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] text-accent-400">{cat.eventCategory}</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-surface-500">Sortierung: {cat.sortOrder}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async (e: any) => {
+                          e.stopPropagation();
+                          try {
+                            await api.admin.updateCategory(cat.id, { showOnHomepage: !cat.showOnHomepage });
+                            await loadCategoryItems();
+                          } catch { alert("Fehler."); }
+                        }}
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium ${
+                          cat.showOnHomepage ? "bg-accent-500/20 text-accent-400" : "bg-surface-700/50 text-surface-400"
+                        }`}
+                      >
+                        {cat.showOnHomepage ? "Startseite" : "Versteckt"}
+                      </button>
+                      <button
+                        onClick={async (e: any) => {
+                          e.stopPropagation();
+                          try {
+                            await api.admin.updateCategory(cat.id, { isActive: !cat.isActive });
+                            await loadCategoryItems();
+                          } catch { alert("Fehler."); }
+                        }}
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium ${
+                          cat.isActive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                        }`}
+                      >
+                        {cat.isActive ? "Aktiv" : "Inaktiv"}
+                      </button>
+                      <span className="text-surface-500 text-xs">{expandedCategory === cat.id ? "▲" : "▼"}</span>
+                    </div>
+                  </div>
+
+                  {expandedCategory === cat.id && (
+                    <div className="border-t border-white/[0.06] px-4 py-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Name</Label>
+                          <Input
+                            defaultValue={cat.name}
+                            onBlur={async (e: any) => {
+                              const v = e.target.value.trim();
+                              if (v && v !== cat.name) {
+                                try { await api.admin.updateCategory(cat.id, { name: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Event-Kategorie (Enum)</Label>
+                          <select
+                            defaultValue={cat.eventCategory || ""}
+                            onChange={async (e: any) => {
+                              const v = e.target.value || null;
+                              try { await api.admin.updateCategory(cat.id, { eventCategory: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                            }}
+                            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none"
+                          >
+                            <option value="">-- Keine --</option>
+                            {ALL_CATEGORIES.map((c) => (
+                              <option key={c} value={c}>{categoryLabel(c)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Icon (Emoji)</Label>
+                          <Input
+                            defaultValue={cat.icon || ""}
+                            onBlur={async (e: any) => {
+                              const v = e.target.value.trim() || null;
+                              if (v !== (cat.icon || null)) {
+                                try { await api.admin.updateCategory(cat.id, { icon: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Sortierung</Label>
+                          <Input
+                            type="number"
+                            defaultValue={cat.sortOrder}
+                            onBlur={async (e: any) => {
+                              const v = parseInt(e.target.value) || 0;
+                              if (v !== cat.sortOrder) {
+                                try { await api.admin.updateCategory(cat.id, { sortOrder: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Bild-URL</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            defaultValue={cat.imageUrl || ""}
+                            placeholder="https://images.unsplash.com/..."
+                            onBlur={async (e: any) => {
+                              const v = e.target.value.trim() || null;
+                              if (v !== (cat.imageUrl || null)) {
+                                try { await api.admin.updateCategory(cat.id, { imageUrl: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                              }
+                            }}
+                          />
+                          {cat.imageUrl && (
+                            <img src={cat.imageUrl} alt="" className="h-10 w-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10" />
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Icon-URL (ueberschreibt Emoji)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            defaultValue={cat.iconUrl || ""}
+                            placeholder="https://..."
+                            onBlur={async (e: any) => {
+                              const v = e.target.value.trim() || null;
+                              if (v !== (cat.iconUrl || null)) {
+                                try { await api.admin.updateCategory(cat.id, { iconUrl: v }); await loadCategoryItems(); } catch { alert("Fehler."); }
+                              }
+                            }}
+                          />
+                          {cat.iconUrl && (
+                            <img src={cat.iconUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Kategorie "${cat.name}" wirklich loeschen?`)) return;
+                            try { await api.admin.deleteCategory(cat.id); await loadCategoryItems(); } catch { alert("Fehler."); }
+                          }}
+                          className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/30"
+                        >
+                          Kategorie loeschen
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </>)}
 
       {/* ─── Settings Tab ─── */}
       {tab === "settings" && (

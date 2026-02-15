@@ -553,6 +553,57 @@ function CommunityCarousel() {
   );
 }
 
+function CategorySection() {
+  const fallbackCats = CATEGORIES.map((c) => ({ slug: c.cat, name: c.label, cat: c.cat, img: c.img, icon: "" }));
+  const [cats, setCats] = useState(fallbackCats);
+
+  useEffect(() => {
+    api.categories.list()
+      .then((r) => {
+        if (!r.categories?.length) return;
+        const homepage = r.categories.filter((c: any) => c.showOnHomepage);
+        if (!homepage.length) return;
+        const fallbackMap = new Map(CATEGORIES.map((c) => [c.cat, c]));
+        setCats(
+          homepage.map((db: any) => {
+            const fb = fallbackMap.get(db.eventCategory || db.slug);
+            return {
+              slug: db.slug,
+              name: db.name || fb?.label || db.slug,
+              cat: db.eventCategory || db.slug,
+              img: db.imageUrl || fb?.img || "",
+              icon: db.icon || "",
+            };
+          })
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <SectionHeader title="Kategorien entdecken" subtitle="Finde Events nach deinem Geschmack" linkTo="/events" linkLabel="Alle Events" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {cats.map((c) => (
+          <Link
+            key={c.slug}
+            to={`/events?category=${c.cat}`}
+            className="group relative aspect-[3/4] overflow-hidden rounded-2xl border border-white/[0.06] transition-all duration-300 hover:border-white/20 hover:shadow-2xl hover:shadow-accent-500/10"
+          >
+            {c.img && <img src={c.img} alt={c.name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 transition-opacity duration-300 group-hover:from-black/90" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              {c.icon && <span className="text-2xl mb-1 block">{c.icon}</span>}
+              <div className="text-base font-bold text-white">{c.name}</div>
+              <div className="mt-0.5 text-xs text-white/60 group-hover:text-white/80 transition-colors">Entdecken →</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -612,25 +663,7 @@ export function HomePage() {
       <CommunityCarousel />
 
       {/* ═══════════════════ CATEGORIES ═══════════════════ */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <SectionHeader title="Kategorien entdecken" subtitle="Finde Events nach deinem Geschmack" linkTo="/events" linkLabel="Alle Events" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.cat}
-              to={`/events?category=${c.cat}`}
-              className="group relative aspect-[3/4] overflow-hidden rounded-2xl border border-white/[0.06] transition-all duration-300 hover:border-white/20 hover:shadow-2xl hover:shadow-accent-500/10"
-            >
-              <img src={c.img} alt={c.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 transition-opacity duration-300 group-hover:from-black/90" />
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <div className="text-base font-bold text-white">{c.label}</div>
-                <div className="mt-0.5 text-xs text-white/60 group-hover:text-white/80 transition-colors">Entdecken →</div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <CategorySection />
 
       {/* ═══════════════════ FEATURED / HIGHLIGHTS ═══════════════════ */}
       {featured.length > 0 && (

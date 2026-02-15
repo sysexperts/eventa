@@ -489,6 +489,49 @@ adminRouter.put("/settings", requireAuth, requireAdmin, async (req, res) => {
   res.json({ settings: map });
 });
 
+// ─── Category Items CRUD ──────────────────────────────────────────────────────
+
+const categoryItemSchema = z.object({
+  slug: z.string().min(1).max(100),
+  name: z.string().min(1).max(200),
+  eventCategory: z.string().max(50).optional().nullable(),
+  imageUrl: z.string().url().optional().nullable(),
+  iconUrl: z.string().url().optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+  showOnHomepage: z.boolean().optional(),
+});
+
+const categoryItemUpdateSchema = categoryItemSchema.partial();
+
+adminRouter.get("/categories", requireAuth, requireAdmin, async (_req, res) => {
+  const categories = await prisma.categoryItem.findMany({ orderBy: { sortOrder: "asc" } });
+  res.json({ categories });
+});
+
+adminRouter.post("/categories", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = categoryItemSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const category = await prisma.categoryItem.create({ data: parsed.data as any });
+  res.status(201).json({ category });
+});
+
+adminRouter.put("/categories/:id", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = categoryItemUpdateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const category = await prisma.categoryItem.update({
+    where: { id: req.params.id },
+    data: parsed.data as any,
+  });
+  res.json({ category });
+});
+
+adminRouter.delete("/categories/:id", requireAuth, requireAdmin, async (req, res) => {
+  await prisma.categoryItem.delete({ where: { id: req.params.id } });
+  res.status(204).send();
+});
+
 // ─── Remove member from community (admin) ────────────────────────────────────
 adminRouter.delete("/communities/:id/members/:memberId", requireAuth, requireAdmin, async (req, res) => {
   const { id, memberId } = req.params;

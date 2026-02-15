@@ -260,6 +260,21 @@ export type CommunityInviteCode = {
   createdAt: string;
 };
 
+export type CategoryItem = {
+  id: string;
+  slug: string;
+  name: string;
+  eventCategory?: string | null;
+  imageUrl?: string | null;
+  iconUrl?: string | null;
+  icon?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  showOnHomepage: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EventComment = {
   id: string;
   text: string;
@@ -458,6 +473,14 @@ export const api = {
       request<{ settings: Record<string, string> }>("/api/admin/settings"),
     updateSettings: (data: Record<string, string>) =>
       request<{ settings: Record<string, string> }>("/api/admin/settings", { method: "PUT", body: JSON.stringify(data) }),
+    listCategories: () =>
+      request<{ categories: CategoryItem[] }>("/api/admin/categories"),
+    createCategory: (data: { slug: string; name: string; eventCategory?: string | null; imageUrl?: string | null; iconUrl?: string | null; icon?: string | null; sortOrder?: number; showOnHomepage?: boolean }) =>
+      request<{ category: CategoryItem }>("/api/admin/categories", { method: "POST", body: JSON.stringify(data) }),
+    updateCategory: (id: string, data: Partial<CategoryItem>) =>
+      request<{ category: CategoryItem }>(`/api/admin/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    deleteCategory: (id: string) =>
+      request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
   },
   artists: {
     list: () => request<{ artists: Artist[] }>("/api/artists"),
@@ -496,6 +519,9 @@ export const api = {
       }),
     deleteReview: (slug: string) =>
       request<void>(`/api/artists/${slug}/reviews`, { method: "DELETE" }),
+  },
+  categories: {
+    list: () => request<{ categories: CategoryItem[] }>("/api/categories"),
   },
   communities: {
     list: () => request<{ communities: Community[] }>("/api/communities"),

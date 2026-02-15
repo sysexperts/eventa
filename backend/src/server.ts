@@ -16,6 +16,7 @@ import { adminRouter } from "./routes/admin.js";
 import { artistsRouter } from "./routes/artists.js";
 import { communitiesRouter } from "./routes/communities.js";
 import { commentsRouter } from "./routes/comments.js";
+import { categoriesRouter } from "./routes/categories.js";
 import { startCronjob } from "./services/cronjob.js";
 
 const app = express();
@@ -51,6 +52,7 @@ app.use("/api/monitored-urls", monitoredUrlsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/artists", artistsRouter);
 app.use("/api/communities", communitiesRouter);
+app.use("/api/categories", categoriesRouter);
 app.use("/api", commentsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

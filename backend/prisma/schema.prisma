@@ -446,6 +446,23 @@ model EventComment {
   @@index([parentId])
 }
 
+// ─── Admin-managed Category Cards ─────────────────────────────────────────────
+
+model CategoryItem {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  eventCategory String?
+  imageUrl    String?
+  iconUrl     String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  showOnHomepage Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ─── Event Attendance ("Ich gehe hin") ────────────────────────────────────────
 
 model EventAttendee {
