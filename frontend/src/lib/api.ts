@@ -204,11 +204,36 @@ export type Community = {
   slug: string;
   name: string;
   description: string;
+  shortDescription?: string;
   imageUrl?: string | null;
   bannerUrl?: string | null;
   country?: string | null;
   language?: string | null;
   isActive?: boolean;
+  // Location & Contact
+  city?: string | null;
+  region?: string | null;
+  timezone?: string | null;
+  contactEmail?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  // Social Links
+  instagram?: string | null;
+  facebook?: string | null;
+  twitter?: string | null;
+  linkedin?: string | null;
+  youtube?: string | null;
+  discord?: string | null;
+  telegram?: string | null;
+  tiktok?: string | null;
+  // Settings
+  category?: string | null;
+  tags?: string[];
+  visibility?: "PUBLIC" | "PRIVATE" | "HIDDEN";
+  rules?: string;
+  welcomeMessage?: string;
+  maxMembers?: number | null;
+  color?: string | null;
   createdAt?: string;
   _count?: { members: number; events: number; inviteCodes?: number };
   members?: { role: string; user: { id: string; name: string }; joinedAt: string }[];

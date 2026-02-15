@@ -275,14 +275,102 @@ export function CommunityPage() {
           )}
 
           {tab === "about" && (
-            <div className="max-w-2xl space-y-6">
+            <div className="max-w-3xl space-y-8">
+              {/* Description */}
               <div>
                 <h3 className="text-lg font-semibold text-white mb-2">Über diese Community</h3>
-                <p className="text-sm text-surface-400 leading-relaxed">{community.description || "Keine Beschreibung vorhanden."}</p>
+                {community.shortDescription && (
+                  <p className="text-sm font-medium text-accent-400 mb-2">{community.shortDescription}</p>
+                )}
+                <p className="text-sm text-surface-400 leading-relaxed whitespace-pre-line">{community.description || "Keine Beschreibung vorhanden."}</p>
               </div>
+
+              {/* Category & Tags */}
+              {(community.category || (community.tags && community.tags.length > 0)) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2">Kategorie & Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {community.category && (
+                      <span className="rounded-full bg-accent-500/10 px-3 py-1 text-xs font-semibold text-accent-400">{community.category}</span>
+                    )}
+                    {community.tags?.map((tag, i) => (
+                      <span key={i} className="rounded-full bg-white/5 px-3 py-1 text-xs text-surface-400">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Location */}
+              {(community.city || community.region || community.timezone) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2">Standort</h3>
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm text-surface-400">
+                    {community.city && <div><span className="text-surface-600">Stadt:</span> {community.city}</div>}
+                    {community.region && <div><span className="text-surface-600">Region:</span> {community.region}</div>}
+                    {community.country && <div><span className="text-surface-600">Land:</span> {community.country}</div>}
+                    {community.timezone && <div><span className="text-surface-600">Zeitzone:</span> {community.timezone}</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Contact */}
+              {(community.contactEmail || community.website || community.phone) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2">Kontakt</h3>
+                  <div className="space-y-1.5 text-sm">
+                    {community.website && (
+                      <div><a href={community.website} target="_blank" rel="noopener noreferrer" className="text-accent-400 hover:text-accent-300 transition-colors">{community.website}</a></div>
+                    )}
+                    {community.contactEmail && (
+                      <div><a href={`mailto:${community.contactEmail}`} className="text-accent-400 hover:text-accent-300 transition-colors">{community.contactEmail}</a></div>
+                    )}
+                    {community.phone && (
+                      <div className="text-surface-400">{community.phone}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Social Links */}
+              {(community.instagram || community.facebook || community.twitter || community.linkedin || community.youtube || community.discord || community.telegram || community.tiktok) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2">Social Media</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {community.instagram && <a href={community.instagram.startsWith("http") ? community.instagram : `https://instagram.com/${community.instagram.replace("@","")}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">Instagram</a>}
+                    {community.facebook && <a href={community.facebook.startsWith("http") ? community.facebook : `https://facebook.com/${community.facebook}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">Facebook</a>}
+                    {community.twitter && <a href={community.twitter.startsWith("http") ? community.twitter : `https://x.com/${community.twitter.replace("@","")}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">Twitter / X</a>}
+                    {community.linkedin && <a href={community.linkedin} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">LinkedIn</a>}
+                    {community.youtube && <a href={community.youtube} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">YouTube</a>}
+                    {community.discord && <a href={community.discord} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">Discord</a>}
+                    {community.telegram && <a href={community.telegram} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">Telegram</a>}
+                    {community.tiktok && <a href={community.tiktok.startsWith("http") ? community.tiktok : `https://tiktok.com/${community.tiktok.replace("@","")}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-surface-400 hover:bg-white/5 hover:text-white transition-all">TikTok</a>}
+                  </div>
+                </div>
+              )}
+
+              {/* Rules */}
+              {community.rules && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2">Community-Regeln</h3>
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm text-surface-400 leading-relaxed whitespace-pre-line">{community.rules}</div>
+                </div>
+              )}
+
+              {/* Visibility & Settings */}
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-2">Info</h3>
+                <div className="grid gap-2 sm:grid-cols-2 text-sm text-surface-400">
+                  <div><span className="text-surface-600">Sichtbarkeit:</span> {community.visibility === "PRIVATE" ? "Privat" : community.visibility === "HIDDEN" ? "Versteckt" : "Öffentlich"}</div>
+                  {community.maxMembers && <div><span className="text-surface-600">Max. Mitglieder:</span> {community.maxMembers}</div>}
+                  {community.language && <div><span className="text-surface-600">Sprache:</span> {community.language}</div>}
+                  {community.createdAt && <div><span className="text-surface-600">Erstellt:</span> {formatDate(community.createdAt)}</div>}
+                </div>
+              </div>
+
+              {/* Team */}
               {community.members && community.members.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Team</h3>
+                  <h3 className="text-sm font-semibold text-white mb-3">Team</h3>
                   <div className="space-y-2">
                     {community.members.map((m, i) => (
                       <div key={i} className="flex items-center gap-3">
@@ -290,7 +378,9 @@ export function CommunityPage() {
                           {m.user.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm text-white">{m.user.name}</span>
-                        <span className="text-xs text-surface-500">{m.role}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                          m.role === "ADMIN" ? "bg-accent-500/10 text-accent-400" : "bg-amber-500/10 text-amber-400"
+                        }`}>{m.role}</span>
                       </div>
                     ))}
                   </div>

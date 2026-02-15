@@ -329,11 +329,39 @@ model Community {
   slug        String   @unique
   name        String
   description String   @default("")
+  shortDescription String @default("")
   imageUrl    String?
   bannerUrl   String?
   country     String?
   language    String?
   isActive    Boolean  @default(true)
+
+  // Location & Contact
+  city        String?
+  region      String?
+  timezone    String?
+  contactEmail String?
+  website     String?
+  phone       String?
+
+  // Social Links (stored as JSON string)
+  instagram   String?
+  facebook    String?
+  twitter     String?
+  linkedin    String?
+  youtube     String?
+  discord     String?
+  telegram    String?
+  tiktok      String?
+
+  // Community Settings
+  category    String?
+  tags        String[] @default([])
+  visibility  String   @default("PUBLIC")
+  rules       String   @default("")
+  welcomeMessage String @default("")
+  maxMembers  Int?
+  color       String?
 
   members     CommunityMember[]
   inviteCodes CommunityInviteCode[]
@@ -344,6 +372,8 @@ model Community {
 
   @@index([slug])
   @@index([isActive])
+  @@index([category])
+  @@index([city])
 }
 
 model CommunityMember {

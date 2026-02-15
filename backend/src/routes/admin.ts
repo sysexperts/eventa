@@ -294,33 +294,47 @@ adminRouter.get("/users/search", requireAuth, requireAdmin, async (req, res) => 
 // List all communities (including inactive)
 adminRouter.get("/communities", requireAuth, requireAdmin, async (_req, res) => {
   const communities = await prisma.community.findMany({
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      description: true,
-      imageUrl: true,
-      bannerUrl: true,
-      country: true,
-      language: true,
-      isActive: true,
-      createdAt: true,
-      _count: { select: { members: true, events: true, inviteCodes: true } },
-    },
     orderBy: { createdAt: "desc" },
+    include: { _count: { select: { members: true, events: true, inviteCodes: true } } },
   });
   res.json({ communities });
 });
 
 // Create community
-const createCommunitySchema = z.object({
-  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, "Nur Kleinbuchstaben, Zahlen und Bindestriche"),
-  name: z.string().min(1).max(100),
-  description: z.string().max(2000).optional(),
+const communityFieldsSchema = {
+  description: z.string().max(5000).optional(),
+  shortDescription: z.string().max(300).optional(),
   imageUrl: z.string().url().optional().nullable(),
   bannerUrl: z.string().url().optional().nullable(),
   country: z.string().max(10).optional().nullable(),
   language: z.string().max(10).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
+  region: z.string().max(100).optional().nullable(),
+  timezone: z.string().max(50).optional().nullable(),
+  contactEmail: z.string().email().optional().nullable(),
+  website: z.string().url().optional().nullable(),
+  phone: z.string().max(30).optional().nullable(),
+  instagram: z.string().max(200).optional().nullable(),
+  facebook: z.string().max(200).optional().nullable(),
+  twitter: z.string().max(200).optional().nullable(),
+  linkedin: z.string().max(200).optional().nullable(),
+  youtube: z.string().max(200).optional().nullable(),
+  discord: z.string().max(200).optional().nullable(),
+  telegram: z.string().max(200).optional().nullable(),
+  tiktok: z.string().max(200).optional().nullable(),
+  category: z.string().max(50).optional().nullable(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  visibility: z.enum(["PUBLIC", "PRIVATE", "HIDDEN"]).optional(),
+  rules: z.string().max(5000).optional(),
+  welcomeMessage: z.string().max(2000).optional(),
+  maxMembers: z.number().int().positive().optional().nullable(),
+  color: z.string().max(20).optional().nullable(),
+};
+
+const createCommunitySchema = z.object({
+  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, "Nur Kleinbuchstaben, Zahlen und Bindestriche"),
+  name: z.string().min(1).max(100),
+  ...communityFieldsSchema,
 });
 
 adminRouter.post("/communities", requireAuth, requireAdmin, async (req, res) => {
@@ -330,28 +344,21 @@ adminRouter.post("/communities", requireAuth, requireAdmin, async (req, res) => 
   const existing = await prisma.community.findUnique({ where: { slug: parsed.data.slug } });
   if (existing) return res.status(409).json({ error: "Slug bereits vergeben." });
 
-  const community = await prisma.community.create({
-    data: {
-      slug: parsed.data.slug,
-      name: parsed.data.name,
-      description: parsed.data.description || "",
-      imageUrl: parsed.data.imageUrl || null,
-      bannerUrl: parsed.data.bannerUrl || null,
-      country: parsed.data.country || null,
-      language: parsed.data.language || null,
-    },
-  });
+  const { slug, name, ...rest } = parsed.data;
+  const data: any = { slug, name };
+  for (const [key, val] of Object.entries(rest)) {
+    if (val !== undefined) data[key] = val ?? null;
+  }
+  if (!data.description) data.description = "";
+
+  const community = await prisma.community.create({ data });
   res.status(201).json({ community });
 });
 
 // Update community
 const adminUpdateCommunitySchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(2000).optional(),
-  imageUrl: z.string().url().optional().nullable(),
-  bannerUrl: z.string().url().optional().nullable(),
-  country: z.string().max(10).optional().nullable(),
-  language: z.string().max(10).optional().nullable(),
+  ...communityFieldsSchema,
   isActive: z.boolean().optional(),
 });
 

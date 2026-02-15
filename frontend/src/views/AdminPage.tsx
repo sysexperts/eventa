@@ -48,7 +48,14 @@ export function AdminPage() {
   const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
   const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([]);
   const [communityMembersLoading, setCommunityMembersLoading] = useState(false);
-  const [newCommunity, setNewCommunity] = useState({ slug: "", name: "", description: "", country: "", language: "" });
+  const [newCommunity, setNewCommunity] = useState({
+    slug: "", name: "", shortDescription: "", description: "",
+    country: "", language: "", city: "", region: "", timezone: "",
+    contactEmail: "", website: "", phone: "",
+    instagram: "", facebook: "", twitter: "", linkedin: "", youtube: "", discord: "", telegram: "", tiktok: "",
+    category: "", tags: "" as string, visibility: "PUBLIC", rules: "", welcomeMessage: "",
+    maxMembers: "" as string, color: "", imageUrl: "", bannerUrl: "",
+  });
   const [roleAssign, setRoleAssign] = useState({ userId: "", role: "MEMBER" });
   const [memberSearch, setMemberSearch] = useState("");
 
@@ -396,73 +403,199 @@ export function AdminPage() {
           </p>
 
           {/* Create new community */}
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
-            <div className="text-sm font-medium text-white">Neue Community erstellen</div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Slug *</Label>
-                <Input
-                  value={newCommunity.slug}
-                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, slug: e.target.value }))}
-                  placeholder="meine-community"
-                />
-              </div>
-              <div>
-                <Label>Name *</Label>
-                <Input
-                  value={newCommunity.name}
-                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="Meine Community"
-                />
-              </div>
-              <div>
-                <Label>Beschreibung</Label>
-                <Input
-                  value={newCommunity.description}
-                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, description: e.target.value }))}
-                  placeholder="Kurze Beschreibung..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label>Land</Label>
-                  <Input
-                    value={newCommunity.country}
-                    onChange={(e: any) => setNewCommunity((p) => ({ ...p, country: e.target.value }))}
-                    placeholder="DE"
-                  />
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 space-y-5">
+            <div className="text-base font-semibold text-white">Neue Community erstellen</div>
+
+            {/* Section: Grunddaten */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Grunddaten</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Slug *</Label>
+                  <Input value={newCommunity.slug} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, slug: e.target.value }))} placeholder="meine-community" />
+                  <p className="mt-0.5 text-[10px] text-surface-600">URL-Pfad: /community/{newCommunity.slug || "..."}</p>
                 </div>
-                <div className="flex-1">
-                  <Label>Sprache</Label>
-                  <Input
-                    value={newCommunity.language}
-                    onChange={(e: any) => setNewCommunity((p) => ({ ...p, language: e.target.value }))}
-                    placeholder="de"
-                  />
+                <div>
+                  <Label>Name *</Label>
+                  <Input value={newCommunity.name} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, name: e.target.value }))} placeholder="Meine Community" />
+                </div>
+                <div>
+                  <Label>Kurzbeschreibung</Label>
+                  <Input value={newCommunity.shortDescription} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, shortDescription: e.target.value }))} placeholder="Ein Satz ueber die Community (max 300 Zeichen)" />
+                </div>
+                <div>
+                  <Label>Kategorie</Label>
+                  <select value={newCommunity.category} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, category: e.target.value }))} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none">
+                    <option value="">Keine Kategorie</option>
+                    <option value="MUSIK">Musik</option>
+                    <option value="KUNST">Kunst & Kultur</option>
+                    <option value="SPORT">Sport & Fitness</option>
+                    <option value="TECH">Technologie</option>
+                    <option value="FOOD">Food & Drinks</option>
+                    <option value="BILDUNG">Bildung & Workshops</option>
+                    <option value="BUSINESS">Business & Networking</option>
+                    <option value="SOCIAL">Soziales & Ehrenamt</option>
+                    <option value="NACHTLEBEN">Nachtleben & Party</option>
+                    <option value="OUTDOOR">Outdoor & Natur</option>
+                    <option value="FAMILIE">Familie & Kinder</option>
+                    <option value="SONSTIGES">Sonstiges</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Beschreibung</Label>
+                  <textarea value={newCommunity.description} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, description: e.target.value }))} placeholder="Ausfuehrliche Beschreibung der Community, Ziele, Aktivitaeten..." rows={4} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-surface-600 focus:border-accent-500 focus:outline-none resize-none" />
+                </div>
+                <div>
+                  <Label>Tags (kommagetrennt)</Label>
+                  <Input value={newCommunity.tags} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, tags: e.target.value }))} placeholder="z.B. musik, konzerte, jazz" />
+                </div>
+                <div>
+                  <Label>Akzentfarbe</Label>
+                  <div className="flex gap-2 items-center">
+                    <input type="color" value={newCommunity.color || "#6366f1"} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, color: e.target.value }))} className="h-9 w-12 rounded border border-white/10 bg-transparent cursor-pointer" />
+                    <Input value={newCommunity.color} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, color: e.target.value }))} placeholder="#6366f1" />
+                  </div>
                 </div>
               </div>
             </div>
-            <Button
-              onClick={async () => {
-                if (!newCommunity.slug.trim() || !newCommunity.name.trim()) return;
-                setBusy("add-community");
-                try {
-                  await api.admin.createCommunity({
-                    slug: newCommunity.slug,
-                    name: newCommunity.name,
-                    description: newCommunity.description || undefined,
-                    country: newCommunity.country || undefined,
-                    language: newCommunity.language || undefined,
-                  });
-                  setNewCommunity({ slug: "", name: "", description: "", country: "", language: "" });
-                  await loadCommunities();
-                } catch (e: any) { alert(e?.message || "Fehler beim Erstellen."); }
-                finally { setBusy(null); }
-              }}
-              disabled={busy === "add-community" || !newCommunity.slug.trim() || !newCommunity.name.trim()}
-            >
-              {busy === "add-community" ? "Erstelle..." : "Community erstellen"}
-            </Button>
+
+            {/* Section: Bilder */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Bilder</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Logo-URL</Label>
+                  <Input value={newCommunity.imageUrl} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, imageUrl: e.target.value }))} placeholder="https://example.com/logo.png" />
+                </div>
+                <div>
+                  <Label>Banner-URL</Label>
+                  <Input value={newCommunity.bannerUrl} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, bannerUrl: e.target.value }))} placeholder="https://example.com/banner.jpg" />
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Standort & Sprache */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Standort & Sprache</div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Stadt</Label>
+                  <Input value={newCommunity.city} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, city: e.target.value }))} placeholder="z.B. Stuttgart" />
+                </div>
+                <div>
+                  <Label>Region</Label>
+                  <Input value={newCommunity.region} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, region: e.target.value }))} placeholder="z.B. Baden-Wuerttemberg" />
+                </div>
+                <div>
+                  <Label>Land (ISO)</Label>
+                  <Input value={newCommunity.country} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, country: e.target.value }))} placeholder="DE" />
+                </div>
+                <div>
+                  <Label>Sprache</Label>
+                  <Input value={newCommunity.language} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, language: e.target.value }))} placeholder="de" />
+                </div>
+                <div>
+                  <Label>Zeitzone</Label>
+                  <Input value={newCommunity.timezone} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, timezone: e.target.value }))} placeholder="Europe/Berlin" />
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Kontakt */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Kontakt</div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>E-Mail</Label>
+                  <Input value={newCommunity.contactEmail} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, contactEmail: e.target.value }))} placeholder="kontakt@community.de" />
+                </div>
+                <div>
+                  <Label>Website</Label>
+                  <Input value={newCommunity.website} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, website: e.target.value }))} placeholder="https://community.de" />
+                </div>
+                <div>
+                  <Label>Telefon</Label>
+                  <Input value={newCommunity.phone} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, phone: e.target.value }))} placeholder="+49 711 1234567" />
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Social Media */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Social Media</div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div><Label>Instagram</Label><Input value={newCommunity.instagram} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, instagram: e.target.value }))} placeholder="@username oder URL" /></div>
+                <div><Label>Facebook</Label><Input value={newCommunity.facebook} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, facebook: e.target.value }))} placeholder="Seiten-URL" /></div>
+                <div><Label>Twitter / X</Label><Input value={newCommunity.twitter} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, twitter: e.target.value }))} placeholder="@handle oder URL" /></div>
+                <div><Label>LinkedIn</Label><Input value={newCommunity.linkedin} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, linkedin: e.target.value }))} placeholder="Profil-URL" /></div>
+                <div><Label>YouTube</Label><Input value={newCommunity.youtube} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, youtube: e.target.value }))} placeholder="Kanal-URL" /></div>
+                <div><Label>Discord</Label><Input value={newCommunity.discord} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, discord: e.target.value }))} placeholder="Einladungslink" /></div>
+                <div><Label>Telegram</Label><Input value={newCommunity.telegram} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, telegram: e.target.value }))} placeholder="Gruppen-Link" /></div>
+                <div><Label>TikTok</Label><Input value={newCommunity.tiktok} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, tiktok: e.target.value }))} placeholder="@username oder URL" /></div>
+              </div>
+            </div>
+
+            {/* Section: Einstellungen */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wider text-accent-400">Einstellungen</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Sichtbarkeit</Label>
+                  <select value={newCommunity.visibility} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, visibility: e.target.value }))} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none">
+                    <option value="PUBLIC">Oeffentlich – Jeder kann beitreten</option>
+                    <option value="PRIVATE">Privat – Nur mit Einladung</option>
+                    <option value="HIDDEN">Versteckt – Nicht in Suche sichtbar</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Max. Mitglieder (leer = unbegrenzt)</Label>
+                  <Input type="number" value={newCommunity.maxMembers} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, maxMembers: e.target.value }))} placeholder="z.B. 500" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Community-Regeln</Label>
+                  <textarea value={newCommunity.rules} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, rules: e.target.value }))} placeholder="1. Respektvoller Umgang&#10;2. Kein Spam&#10;3. ..." rows={4} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-surface-600 focus:border-accent-500 focus:outline-none resize-none" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Willkommensnachricht</Label>
+                  <textarea value={newCommunity.welcomeMessage} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, welcomeMessage: e.target.value }))} placeholder="Willkommen in unserer Community! Hier findest du..." rows={3} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-surface-600 focus:border-accent-500 focus:outline-none resize-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2 border-t border-white/[0.06]">
+              <Button
+                onClick={async () => {
+                  if (!newCommunity.slug.trim() || !newCommunity.name.trim()) return;
+                  setBusy("add-community");
+                  try {
+                    const payload: any = {
+                      slug: newCommunity.slug.trim(),
+                      name: newCommunity.name.trim(),
+                    };
+                    const optStr = ["shortDescription","description","imageUrl","bannerUrl","country","language","city","region","timezone","contactEmail","website","phone","instagram","facebook","twitter","linkedin","youtube","discord","telegram","tiktok","category","rules","welcomeMessage","color"] as const;
+                    for (const k of optStr) { if (newCommunity[k]?.trim()) payload[k] = newCommunity[k].trim(); }
+                    if (newCommunity.visibility !== "PUBLIC") payload.visibility = newCommunity.visibility;
+                    if (newCommunity.tags.trim()) payload.tags = newCommunity.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+                    if (newCommunity.maxMembers && parseInt(newCommunity.maxMembers) > 0) payload.maxMembers = parseInt(newCommunity.maxMembers);
+                    await api.admin.createCommunity(payload);
+                    setNewCommunity({
+                      slug: "", name: "", shortDescription: "", description: "",
+                      country: "", language: "", city: "", region: "", timezone: "",
+                      contactEmail: "", website: "", phone: "",
+                      instagram: "", facebook: "", twitter: "", linkedin: "", youtube: "", discord: "", telegram: "", tiktok: "",
+                      category: "", tags: "", visibility: "PUBLIC", rules: "", welcomeMessage: "",
+                      maxMembers: "", color: "", imageUrl: "", bannerUrl: "",
+                    });
+                    await loadCommunities();
+                  } catch (e: any) { alert(e?.message || "Fehler beim Erstellen."); }
+                  finally { setBusy(null); }
+                }}
+                disabled={busy === "add-community" || !newCommunity.slug.trim() || !newCommunity.name.trim()}
+              >
+                {busy === "add-community" ? "Erstelle..." : "Community erstellen"}
+              </Button>
+              <span className="text-xs text-surface-500">* Pflichtfelder: Slug und Name</span>
+            </div>
           </div>
 
           {/* Communities list */}
