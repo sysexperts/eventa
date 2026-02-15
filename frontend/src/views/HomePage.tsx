@@ -716,48 +716,78 @@ export function HomePage() {
 
       {/* ═══════════════════ CITIES / STÄDTE ═══════════════════ */}
       {cities.length > 0 && (() => {
-        const gradients = [
-          "from-accent-500/20 via-accent-500/5 to-transparent",
-          "from-neon-purple/20 via-neon-purple/5 to-transparent",
-          "from-neon-pink/20 via-neon-pink/5 to-transparent",
-          "from-neon-cyan/20 via-neon-cyan/5 to-transparent",
-          "from-neon-green/20 via-neon-green/5 to-transparent",
-          "from-amber-500/20 via-amber-500/5 to-transparent",
-        ];
-        const accents = [
-          "bg-accent-500/20 text-accent-400 ring-accent-500/20",
-          "bg-neon-purple/20 text-neon-purple ring-neon-purple/20",
-          "bg-neon-pink/20 text-neon-pink ring-neon-pink/20",
-          "bg-neon-cyan/20 text-neon-cyan ring-neon-cyan/20",
-          "bg-neon-green/20 text-neon-green ring-neon-green/20",
-          "bg-amber-500/20 text-amber-400 ring-amber-500/20",
-        ];
+        const cityImages: Record<string, string> = {
+          "Stuttgart": "https://images.unsplash.com/photo-1617952739858-28043cfa1fd7?auto=format&fit=crop&w=600&q=80",
+          "Berlin": "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=600&q=80",
+          "München": "https://images.unsplash.com/photo-1595867818082-083862f3d630?auto=format&fit=crop&w=600&q=80",
+          "Hamburg": "https://images.unsplash.com/photo-1567012198683-2e6ab10b5e47?auto=format&fit=crop&w=600&q=80",
+          "Köln": "https://images.unsplash.com/photo-1515091943-9d5c0ad475af?auto=format&fit=crop&w=600&q=80",
+          "Frankfurt": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=600&q=80",
+          "Düsseldorf": "https://images.unsplash.com/photo-1623177625776-e37ad9201ef3?auto=format&fit=crop&w=600&q=80",
+          "Leipzig": "https://images.unsplash.com/photo-1599055322309-2e1b1a580f01?auto=format&fit=crop&w=600&q=80",
+          "Dresden": "https://images.unsplash.com/photo-1528728329032-2972f65dfb3f?auto=format&fit=crop&w=600&q=80",
+          "Nürnberg": "https://images.unsplash.com/photo-1572204292164-b35ba943fca7?auto=format&fit=crop&w=600&q=80",
+          "Hannover": "https://images.unsplash.com/photo-1592323818181-f2d15e41b15b?auto=format&fit=crop&w=600&q=80",
+          "Dortmund": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=600&q=80",
+        };
+        const fallbackImg = "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=600&q=80";
+        const glowColors = ["from-accent-500/25", "from-neon-purple/25", "from-neon-pink/25", "from-neon-cyan/25", "from-neon-green/25", "from-amber-500/25"];
         return (
-        <section className="border-y border-white/[0.06] bg-gradient-to-b from-white/[0.02] to-transparent">
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-            <SectionHeader title="Events nach Stadt" subtitle="Entdecke was in deiner Nähe los ist" linkTo="/events" linkLabel="Alle Städte" />
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent-500/[0.02] to-transparent" />
+          <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <div className="mb-10 text-center">
+              <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                Events in deiner <span className="text-gradient">Stadt</span>
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-surface-400 sm:text-base">
+                Entdecke was in deiner Nähe los ist
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              {cities.map((city, i) => (
+              {cities.map((city, i) => {
+                const img = cityImages[city.name] || fallbackImg;
+                return (
                 <Link
                   key={city.name}
                   to={`/events?city=${encodeURIComponent(city.name)}`}
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.06] hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1"
+                  className="group relative isolate"
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${gradients[i % gradients.length]} opacity-0 transition-opacity duration-500 group-hover:opacity-100`} />
-                  <div className="relative flex flex-col items-center px-4 py-7">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${accents[i % accents.length]} ring-1 transition-transform duration-300 group-hover:scale-110`}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
+                  <div className="relative w-full overflow-hidden rounded-2xl aspect-[4/5] transition-transform duration-500 ease-out group-hover:scale-[1.02]">
+                    <img src={img} alt={city.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/5" />
+                    <div className="absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/0" />
+                    <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t ${glowColors[i % glowColors.length]} via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`} />
+                    <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all duration-500 group-hover:ring-white/25" />
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="relative transition-transform duration-500 ease-out group-hover:-translate-y-1">
+                        <div className="absolute -inset-3 rounded-full bg-white/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-80" />
+                        <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/15 shadow-2xl shadow-black/40 ring-[2px] ring-white/30 backdrop-blur-md transition-all duration-500 group-hover:ring-white/50 group-hover:bg-white/25 sm:h-12 sm:w-12">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-lg">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                          </svg>
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-3.5 text-sm font-bold text-white tracking-wide">{city.name}</div>
-                    <div className="mt-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-surface-400 transition-colors group-hover:bg-white/[0.1] group-hover:text-surface-300">
-                      {city.count} {city.count === 1 ? "Event" : "Events"}
+
+                    <div className="absolute inset-x-0 bottom-0 p-3 text-center">
+                      <div className="text-sm font-bold text-white drop-shadow-lg sm:text-base">{city.name}</div>
+                      <div className="mt-1 inline-block rounded-full bg-black/40 px-2.5 py-0.5 text-[10px] font-semibold text-white/80 backdrop-blur-md ring-1 ring-white/10 transition-all duration-300 group-hover:bg-black/60 group-hover:text-white group-hover:ring-white/20 sm:text-[11px]">
+                        {city.count} {city.count === 1 ? "Event" : "Events"}
+                      </div>
                     </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
+            </div>
+            <div className="mt-8 flex justify-center">
+              <Link to="/events" className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-surface-300 backdrop-blur-sm transition-all duration-300 hover:border-accent-500/30 hover:bg-accent-500/5 hover:text-white">
+                Alle Städte anzeigen
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1"><path d="m9 18 6-6-6-6"/></svg>
+              </Link>
             </div>
           </div>
         </section>
