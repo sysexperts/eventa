@@ -347,11 +347,9 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
           <p className="animate-slide-up-delay mx-auto mt-6 max-w-xl text-base leading-relaxed text-surface-300/90 sm:text-lg">
             {heroSubtitle}
           </p>
-        </div>
 
-        {/* Search Bar with glassmorphism — wider container */}
-        <div className="mx-auto max-w-5xl">
-          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mt-10">
+          {/* Search Bar with glassmorphism */}
+          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mx-auto mt-10">
             <div className="group/search relative">
               {/* Glow effect behind search bar */}
               <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-accent-500/20 via-neon-purple/10 to-accent-500/20 opacity-0 blur-xl transition-opacity duration-500 group-focus-within/search:opacity-100" />
@@ -364,7 +362,7 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Suche nach Events, Künstlern, Orten..."
-                  className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] py-4.5 pl-14 pr-32 text-[15px] text-white placeholder-surface-500 outline-none backdrop-blur-2xl transition-all duration-300 focus:border-accent-500/40 focus:bg-white/[0.1] focus:shadow-[0_0_30px_rgba(51,102,255,0.12)] focus:ring-1 focus:ring-accent-500/20"
+                  className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] py-2 pl-14 pr-32 text-[15px] text-white placeholder-surface-500 outline-none backdrop-blur-2xl transition-all duration-300 focus:border-accent-500/40 focus:bg-white/[0.1] focus:shadow-[0_0_30px_rgba(51,102,255,0.12)] focus:ring-1 focus:ring-accent-500/20"
                 />
                 <button
                   type="submit"
