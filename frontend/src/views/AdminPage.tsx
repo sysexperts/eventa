@@ -20,7 +20,17 @@ const ALL_CATEGORIES: EventCategory[] = [
 
 export function AdminPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"users" | "sources" | "communities">("users");
+  const [tab, setTab] = useState<"users" | "sources" | "communities" | "settings">("users");
+
+  // Site settings state
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [heroLine1, setHeroLine1] = useState("Entdecke Events");
+  const [heroLine2, setHeroLine2] = useState("in deiner N\u00e4he");
+  const [heroSubtitle, setHeroSubtitle] = useState("Konzerte, Theater, Lesungen, Comedy und mehr \u2013 finde Veranstaltungen, die dich begeistern.");
+  const [heroBadge, setHeroBadge] = useState("Neue Events in deiner N\u00e4he");
+  const [heroGradientLine, setHeroGradientLine] = useState<"1" | "2">("2");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -110,10 +120,42 @@ export function AdminPage() {
     finally { setSearching(false); }
   }
 
+  async function loadSettings() {
+    setSettingsLoading(true);
+    try {
+      const res = await api.admin.getSettings();
+      setSiteSettings(res.settings);
+      if (res.settings.heroLine1) setHeroLine1(res.settings.heroLine1);
+      if (res.settings.heroLine2) setHeroLine2(res.settings.heroLine2);
+      if (res.settings.heroSubtitle) setHeroSubtitle(res.settings.heroSubtitle);
+      if (res.settings.heroBadge) setHeroBadge(res.settings.heroBadge);
+      if (res.settings.heroGradientLine) setHeroGradientLine(res.settings.heroGradientLine as "1" | "2");
+    } catch { /* ignore */ }
+    finally { setSettingsLoading(false); }
+  }
+
+  async function saveHeroSettings() {
+    setSettingsSaving(true);
+    try {
+      const res = await api.admin.updateSettings({
+        heroLine1,
+        heroLine2,
+        heroSubtitle,
+        heroBadge,
+        heroGradientLine,
+      });
+      setSiteSettings(res.settings);
+      alert("Einstellungen gespeichert!");
+    } catch {
+      alert("Fehler beim Speichern.");
+    } finally { setSettingsSaving(false); }
+  }
+
   useEffect(() => {
     loadUsers();
     loadSources();
     loadCommunities();
+    loadSettings();
   }, []);
 
   if (!user?.isAdmin) {
@@ -272,7 +314,116 @@ export function AdminPage() {
         >
           Globale Quellen ({sources.length})
         </button>
+        <button
+          onClick={() => setTab("settings")}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "settings" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
+          }`}
+        >
+          Einstellungen
+        </button>
       </div>
+
+      {/* ─── Settings Tab ─── */}
+      {tab === "settings" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
+            <h2 className="text-lg font-bold text-white mb-1">Hero-Bereich</h2>
+            <p className="text-xs text-surface-500 mb-6">Text und Darstellung des Hero-Bereichs auf der Startseite anpassen.</p>
+
+            {settingsLoading ? (
+              <p className="text-sm text-surface-400">Lade Einstellungen...</p>
+            ) : (
+              <div className="space-y-5">
+                {/* Badge text */}
+                <div>
+                  <Label>Badge-Text (oben)</Label>
+                  <Input value={heroBadge} onChange={(e: any) => setHeroBadge(e.target.value)} placeholder="z.B. Neue Events in deiner N\u00e4he" />
+                </div>
+
+                {/* Headline Line 1 */}
+                <div>
+                  <Label>Headline Zeile 1</Label>
+                  <Input value={heroLine1} onChange={(e: any) => setHeroLine1(e.target.value)} placeholder="z.B. Entdecke Events" />
+                </div>
+
+                {/* Headline Line 2 */}
+                <div>
+                  <Label>Headline Zeile 2</Label>
+                  <Input value={heroLine2} onChange={(e: any) => setHeroLine2(e.target.value)} placeholder="z.B. in deiner N\u00e4he" />
+                </div>
+
+                {/* Gradient line selection */}
+                <div>
+                  <Label>Welche Zeile hat den Gradient-Effekt?</Label>
+                  <div className="mt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setHeroGradientLine("1")}
+                      className={`flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
+                        heroGradientLine === "1"
+                          ? "border-accent-500/50 bg-accent-500/10 text-white"
+                          : "border-white/10 bg-white/[0.03] text-surface-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      <span className={heroGradientLine === "1" ? "bg-gradient-to-r from-accent-300 via-purple-400 to-accent-400 bg-clip-text text-transparent" : ""}>
+                        {heroLine1 || "Zeile 1"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHeroGradientLine("2")}
+                      className={`flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
+                        heroGradientLine === "2"
+                          ? "border-accent-500/50 bg-accent-500/10 text-white"
+                          : "border-white/10 bg-white/[0.03] text-surface-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      <span className={heroGradientLine === "2" ? "bg-gradient-to-r from-accent-300 via-purple-400 to-accent-400 bg-clip-text text-transparent" : ""}>
+                        {heroLine2 || "Zeile 2"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subtitle */}
+                <div>
+                  <Label>Untertitel</Label>
+                  <textarea
+                    value={heroSubtitle}
+                    onChange={(e: any) => setHeroSubtitle(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-surface-500 outline-none transition-colors focus:border-accent-500/50 focus:bg-white/[0.08] focus:ring-1 focus:ring-accent-500/30"
+                    placeholder="Beschreibungstext unter der Headline"
+                  />
+                </div>
+
+                {/* Preview */}
+                <div className="rounded-xl border border-white/[0.06] bg-surface-950 p-6 text-center">
+                  <p className="text-[10px] uppercase tracking-widest text-surface-500 mb-3">Vorschau</p>
+                  <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                    <span className={heroGradientLine === "1" ? "bg-gradient-to-r from-accent-300 via-purple-400 to-accent-400 bg-clip-text text-transparent" : "text-white"}>
+                      {heroLine1}
+                    </span>
+                    <br />
+                    <span className={heroGradientLine === "2" ? "bg-gradient-to-r from-accent-300 via-purple-400 to-accent-400 bg-clip-text text-transparent" : "text-white"}>
+                      {heroLine2}
+                    </span>
+                  </h2>
+                  <p className="mt-3 text-sm text-surface-400">{heroSubtitle}</p>
+                </div>
+
+                {/* Save */}
+                <div className="flex justify-end">
+                  <Button onClick={saveHeroSettings} disabled={settingsSaving}>
+                    {settingsSaving ? "Speichere..." : "Einstellungen speichern"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── Sources Tab ─── */}
       {tab === "sources" && (

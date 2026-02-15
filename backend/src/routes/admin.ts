@@ -451,6 +451,40 @@ adminRouter.get("/communities/:id/members", requireAuth, requireAdmin, async (re
   res.json({ members, total, page, pages: Math.ceil(total / limit) });
 });
 
+// ─── Site Settings ───────────────────────────────────────────────────────────
+
+// Get all site settings (public - no auth needed for hero text)
+adminRouter.get("/settings", async (_req, res) => {
+  const settings = await prisma.siteSetting.findMany();
+  const map: Record<string, string> = {};
+  for (const s of settings) map[s.key] = s.value;
+  res.json({ settings: map });
+});
+
+// Update site settings (admin only)
+const updateSettingsSchema = z.record(z.string(), z.string());
+
+adminRouter.put("/settings", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = updateSettingsSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const entries = Object.entries(parsed.data);
+  await Promise.all(
+    entries.map(([key, value]) =>
+      prisma.siteSetting.upsert({
+        where: { key },
+        create: { key, value },
+        update: { value },
+      })
+    )
+  );
+
+  const settings = await prisma.siteSetting.findMany();
+  const map: Record<string, string> = {};
+  for (const s of settings) map[s.key] = s.value;
+  res.json({ settings: map });
+});
+
 // ─── Remove member from community (admin) ────────────────────────────────────
 adminRouter.delete("/communities/:id/members/:memberId", requireAuth, requireAdmin, async (req, res) => {
   const { id, memberId } = req.params;

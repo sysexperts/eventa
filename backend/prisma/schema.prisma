@@ -412,6 +412,14 @@ model CommunityInviteCode {
   @@index([communityId])
 }
 
+// ─── Site Settings (Key-Value) ────────────────────────────────────────────────
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Event Comments ───────────────────────────────────────────────────────────
 
 model EventComment {

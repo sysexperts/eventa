@@ -451,6 +451,10 @@ export const api = {
       request<{ members: CommunityMember[]; total: number; page: number; pages: number }>(`/api/admin/communities/${communityId}/members?q=${encodeURIComponent(q)}&page=${page}`),
     removeCommunityMember: (communityId: string, memberId: string) =>
       request<void>(`/api/admin/communities/${communityId}/members/${memberId}`, { method: "DELETE" }),
+    getSettings: () =>
+      request<{ settings: Record<string, string> }>("/api/admin/settings"),
+    updateSettings: (data: Record<string, string>) =>
+      request<{ settings: Record<string, string> }>("/api/admin/settings", { method: "PUT", body: JSON.stringify(data) }),
   },
   artists: {
     list: () => request<{ artists: Artist[] }>("/api/artists"),

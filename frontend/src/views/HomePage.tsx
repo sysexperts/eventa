@@ -213,6 +213,24 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const videoTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Dynamic hero text from admin settings
+  const [heroLine1, setHeroLine1] = useState("Entdecke Events");
+  const [heroLine2, setHeroLine2] = useState("in deiner N\u00e4he");
+  const [heroSubtitle, setHeroSubtitle] = useState("Konzerte, Theater, Lesungen, Comedy und mehr \u2013 finde Veranstaltungen, die dich begeistern.");
+  const [heroBadge, setHeroBadge] = useState("Neue Events in deiner N\u00e4he");
+  const [heroGradientLine, setHeroGradientLine] = useState<"1" | "2">("2");
+
+  useEffect(() => {
+    api.admin.getSettings().then((res) => {
+      const s = res.settings;
+      if (s.heroLine1) setHeroLine1(s.heroLine1);
+      if (s.heroLine2) setHeroLine2(s.heroLine2);
+      if (s.heroSubtitle) setHeroSubtitle(s.heroSubtitle);
+      if (s.heroBadge) setHeroBadge(s.heroBadge);
+      if (s.heroGradientLine) setHeroGradientLine(s.heroGradientLine as "1" | "2");
+    }).catch(() => {});
+  }, []);
+
   const activeEvent = heroImages[activeIdx];
   const heroVideo = activeEvent?.heroVideoUrl && isVideoUrl(activeEvent.heroVideoUrl) ? activeEvent.heroVideoUrl : null;
   const showVideo = videoEnabled && !!heroVideo;
@@ -312,25 +330,26 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-green opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-neon-green" />
             </span>
-            Neue Events in deiner Nähe
+            {heroBadge}
           </div>
 
           {/* Headline with stagger animation */}
           <h1 className="animate-slide-up text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
-            <span className="drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]">Erlebe deine Stadt</span>
-            <span className="mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg">
-              wie nie zuvor
+            <span className={heroGradientLine === "1" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
+              {heroLine1}
+            </span>
+            <span className={heroGradientLine === "2" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "mt-2 block drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
+              {heroLine2}
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="animate-slide-up-delay mx-auto mt-6 max-w-xl text-base leading-relaxed text-surface-300/90 sm:text-lg">
-            Konzerte, Theater, Lesungen, Comedy und mehr –
-            <span className="text-white/80 font-medium"> entdecke Veranstaltungen</span> in deiner Nähe.
+            {heroSubtitle}
           </p>
 
           {/* Search Bar with glassmorphism */}
-          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mx-auto mt-10 max-w-2xl">
+          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mx-auto mt-10 max-w-3xl">
             <div className="group/search relative">
               {/* Glow effect behind search bar */}
               <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-accent-500/20 via-neon-purple/10 to-accent-500/20 opacity-0 blur-xl transition-opacity duration-500 group-focus-within/search:opacity-100" />
@@ -343,11 +362,11 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Suche nach Events, Künstlern, Orten..."
-                  className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] py-4.5 pl-14 pr-36 text-[15px] text-white placeholder-surface-500 outline-none backdrop-blur-2xl transition-all duration-300 focus:border-accent-500/40 focus:bg-white/[0.1] focus:shadow-[0_0_30px_rgba(51,102,255,0.12)] focus:ring-1 focus:ring-accent-500/20"
+                  className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] py-4.5 pl-14 pr-32 text-[15px] text-white placeholder-surface-500 outline-none backdrop-blur-2xl transition-all duration-300 focus:border-accent-500/40 focus:bg-white/[0.1] focus:shadow-[0_0_30px_rgba(51,102,255,0.12)] focus:ring-1 focus:ring-accent-500/20"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all duration-300 hover:shadow-accent-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                  className="absolute right-2.5 rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all duration-300 hover:shadow-accent-500/40 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Suchen
                 </button>
