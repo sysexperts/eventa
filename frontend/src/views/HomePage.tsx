@@ -526,7 +526,7 @@ function CommunityCarousel() {
                   <img
                     src={c.flagUrl || `${FLAG_CDN}/${c.flag.toLowerCase()}.svg`}
                     alt=""
-                    className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl shadow-black/60 ring-[3px] ring-white/30 transition-all duration-500 group-hover:ring-white/60 group-hover:shadow-black/40"
+                    className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover shadow-2xl shadow-black/60 ring-[3px] ring-white/30 transition-all duration-500 group-hover:ring-white/60 group-hover:shadow-black/40"
                   />
                 </div>
               </div>
