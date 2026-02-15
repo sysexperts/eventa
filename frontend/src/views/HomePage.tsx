@@ -347,9 +347,11 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
           <p className="animate-slide-up-delay mx-auto mt-6 max-w-xl text-base leading-relaxed text-surface-300/90 sm:text-lg">
             {heroSubtitle}
           </p>
+        </div>
 
-          {/* Search Bar with glassmorphism */}
-          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mx-auto mt-10">
+        {/* Search Bar with glassmorphism — wider container */}
+        <div className="mx-auto max-w-5xl">
+          <form onSubmit={onSearch} className="animate-slide-up-delay-2 mt-10">
             <div className="group/search relative">
               {/* Glow effect behind search bar */}
               <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-accent-500/20 via-neon-purple/10 to-accent-500/20 opacity-0 blur-xl transition-opacity duration-500 group-focus-within/search:opacity-100" />
