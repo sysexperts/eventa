@@ -845,6 +845,68 @@ export function AdminPage() {
                           </div>
                         </div>
 
+                        {/* Bilder & Flagge bearbeiten */}
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium text-white">Bilder &amp; Flagge</div>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                              <Label>Flaggen-Code (ISO)</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  defaultValue={c.flagCode || ""}
+                                  placeholder="z.B. tr, gr, rs"
+                                  onBlur={async (e: any) => {
+                                    const v = e.target.value.trim() || null;
+                                    if (v !== (c.flagCode || null)) {
+                                      try { await api.admin.updateCommunity(c.id, { flagCode: v }); await loadCommunities(); } catch { alert("Fehler."); }
+                                    }
+                                  }}
+                                />
+                                {(c.flagCode || c.country) && (
+                                  <img src={`https://hatscripts.github.io/circle-flags/flags/${(c.flagCode || c.country || "").toLowerCase()}.svg`} alt="" className="h-8 w-8 shrink-0 rounded-full ring-1 ring-white/10" />
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Banner-Bild URL</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  defaultValue={c.bannerUrl || ""}
+                                  placeholder="https://images.unsplash.com/..."
+                                  onBlur={async (e: any) => {
+                                    const v = e.target.value.trim() || null;
+                                    if (v !== (c.bannerUrl || null)) {
+                                      try { await api.admin.updateCommunity(c.id, { bannerUrl: v }); await loadCommunities(); } catch { alert("Fehler."); }
+                                    }
+                                  }}
+                                />
+                                {c.bannerUrl && (
+                                  <img src={c.bannerUrl} alt="" className="h-8 w-12 shrink-0 rounded object-cover ring-1 ring-white/10" />
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Logo URL</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  defaultValue={c.imageUrl || ""}
+                                  placeholder="https://..."
+                                  onBlur={async (e: any) => {
+                                    const v = e.target.value.trim() || null;
+                                    if (v !== (c.imageUrl || null)) {
+                                      try { await api.admin.updateCommunity(c.id, { imageUrl: v }); await loadCommunities(); } catch { alert("Fehler."); }
+                                    }
+                                  }}
+                                />
+                                {c.imageUrl && (
+                                  <img src={c.imageUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-surface-600">Aenderungen werden beim Verlassen des Feldes gespeichert. Flaggen-Code und Banner werden auf der Startseite angezeigt.</p>
+                        </div>
+
                         {/* Mitglied hinzufuegen */}
                         <div>
                           <div className="text-sm font-medium text-white mb-2">Mitglied hinzufuegen</div>

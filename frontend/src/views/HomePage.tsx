@@ -452,6 +452,30 @@ const CULTURES = [
 ];
 
 function CommunityCarousel() {
+  const [items, setItems] = useState(CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, img: c.img })));
+
+  useEffect(() => {
+    api.communities.list()
+      .then((r) => {
+        if (!r.communities?.length) return;
+        const dbMap = new Map<string, any>();
+        for (const db of r.communities) dbMap.set(db.slug, db);
+        setItems((prev) =>
+          prev.map((c) => {
+            const db = dbMap.get(c.slug);
+            if (!db) return c;
+            return {
+              slug: c.slug,
+              name: db.name || c.name,
+              flag: db.flagCode || db.country || c.flag,
+              img: db.bannerUrl || db.imageUrl || c.img,
+            };
+          })
+        );
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       {/* Section header */}
@@ -464,9 +488,9 @@ function CommunityCarousel() {
         </p>
       </div>
 
-      {/* Culture grid — 2 rows of 8 on desktop, scrollable on mobile */}
+      {/* Culture grid — 2 rows of 8 on desktop */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
-        {CULTURES.map((c) => (
+        {items.map((c) => (
           <Link
             key={c.slug}
             to={`/events?community=${c.slug}`}
@@ -497,7 +521,7 @@ function CommunityCarousel() {
                 <div className="relative transition-transform duration-500 ease-out group-hover:-translate-y-1">
                   <div className="absolute -inset-3 rounded-full bg-white/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-80" />
                   <img
-                    src={`${FLAG_CDN}/${c.flag}.svg`}
+                    src={`${FLAG_CDN}/${c.flag.toLowerCase()}.svg`}
                     alt=""
                     className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl shadow-black/60 ring-[3px] ring-white/30 transition-all duration-500 group-hover:ring-white/60 group-hover:shadow-black/40"
                   />
