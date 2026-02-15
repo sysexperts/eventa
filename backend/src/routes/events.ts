@@ -10,7 +10,9 @@ import { createEventSchema, eventCategorySchema, updateEventSchema } from "../va
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, "..", "..", "uploads", "events");
+const videosDir = path.join(__dirname, "..", "..", "uploads", "videos");
 fs.mkdirSync(uploadsDir, { recursive: true });
+fs.mkdirSync(videosDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -27,6 +29,24 @@ const upload = multer({
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
     else cb(new Error("Nur JPG, PNG, WebP oder GIF erlaubt."));
+  },
+});
+
+const videoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, videosDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  },
+});
+const videoUpload = multer({
+  storage: videoStorage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".mp4", ".webm", ".ogg", ".mov"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error("Nur MP4, WebM, OGG oder MOV erlaubt."));
   },
 });
 
@@ -194,6 +214,15 @@ eventsRouter.post("/upload-image", requireAuth, upload.single("image"), async (r
   const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
   const imageUrl = `${backendUrl}/uploads/events/${req.file.filename}`;
   res.json({ imageUrl });
+});
+
+// ─── Event Video Upload ─────────────────────────────────────────────────────
+
+eventsRouter.post("/upload-video", requireAuth, videoUpload.single("video"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Keine Datei hochgeladen." });
+  const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+  const videoUrl = `${backendUrl}/uploads/videos/${req.file.filename}`;
+  res.json({ videoUrl });
 });
 
 // ─── Dashboard Stats ─────────────────────────────────────────────────────────

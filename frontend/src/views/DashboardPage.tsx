@@ -186,8 +186,41 @@ function ScrapedEventEditModal({
 
               <div>
                 <Label>Hero Video (optional)</Label>
-                <Input type="url" value={heroVideoUrl} onChange={(e) => setHeroVideoUrl(e.target.value)} placeholder="https://example.com/video.mp4" />
-                <p className="mt-1 text-[11px] text-surface-500">Direkte Video-URL (MP4, WebM, OGG). Wird im Hero-Slider stumm abgespielt.</p>
+                <div className="space-y-2">
+                  {heroVideoUrl && (
+                    <div className="relative w-full overflow-hidden rounded-lg border border-white/10" style={{ aspectRatio: "16/9", maxHeight: 160 }}>
+                      <video src={heroVideoUrl} muted loop playsInline className="h-full w-full object-cover" />
+                      <button type="button" onClick={() => setHeroVideoUrl("")} className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500/80 text-white hover:bg-red-600 transition-colors" title="Video entfernen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  )}
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-white/15 bg-surface-800/50 px-3 py-2.5 text-sm text-surface-400 hover:border-accent-500/40 hover:bg-surface-800 hover:text-accent-400 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    {heroVideoUrl ? "Video ersetzen…" : "Video hochladen (MP4, WebM, max. 100 MB)"}
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                      className="hidden"
+                      onChange={async (e: any) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 100 * 1024 * 1024) {
+                          alert("Video darf maximal 100 MB groß sein.");
+                          e.target.value = "";
+                          return;
+                        }
+                        try {
+                          const res = await api.events.uploadVideo(file);
+                          setHeroVideoUrl(res.videoUrl);
+                        } catch {
+                          alert("Video-Upload fehlgeschlagen.");
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
               {imageUrl && (

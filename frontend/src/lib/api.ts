@@ -358,6 +358,17 @@ export const api = {
       if (!res.ok) throw new Error("Upload fehlgeschlagen");
       return res.json();
     },
+    uploadVideo: async (file: File): Promise<{ videoUrl: string }> => {
+      const formData = new FormData();
+      formData.append("video", file);
+      const res = await fetch(`${API_URL}/api/events/upload-video`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Video-Upload fehlgeschlagen");
+      return res.json();
+    },
     favorites: () => request<{ events: EventListItem[] }>("/api/events/favorites"),
     favoriteIds: () => request<{ ids: string[] }>("/api/events/favorites/ids"),
     toggleFavorite: (id: string) => request<{ favorited: boolean }>(`/api/events/favorites/${id}`, { method: "POST" }),

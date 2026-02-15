@@ -295,8 +295,42 @@ export function EventFormPage({ mode }: Props) {
         </div>
         <div>
           <Label>Hero Video (optional)</Label>
-          <Input type="url" placeholder="https://example.com/video.mp4" value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} />
-          <p className="mt-1 text-[11px] text-surface-500">Direkte Video-URL (MP4, WebM, OGG). Wird im Hero-Slider stumm abgespielt.</p>
+          <div className="space-y-2">
+            {form.heroVideoUrl && (
+              <div className="relative w-full overflow-hidden rounded-lg border border-white/10" style={{ aspectRatio: "16/9", maxHeight: 200 }}>
+                <video src={form.heroVideoUrl} muted loop playsInline className="h-full w-full object-cover" onError={(e: any) => { e.target.style.display = "none"; }} />
+                <button type="button" onClick={() => set("heroVideoUrl", "")} className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500/80 text-white hover:bg-red-600 transition-colors" title="Video entfernen">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            )}
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-white/15 bg-surface-800/50 px-4 py-3 text-sm text-surface-400 hover:border-accent-500/40 hover:bg-surface-800 hover:text-accent-400 transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              {form.heroVideoUrl ? "Video ersetzen…" : "Video hochladen (MP4, WebM, OGG, max. 100 MB)"}
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                className="hidden"
+                onChange={async (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 100 * 1024 * 1024) {
+                    alert("Video darf maximal 100 MB groß sein.");
+                    e.target.value = "";
+                    return;
+                  }
+                  try {
+                    const res = await api.events.uploadVideo(file);
+                    set("heroVideoUrl", res.videoUrl);
+                  } catch {
+                    alert("Video-Upload fehlgeschlagen.");
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <p className="text-[11px] text-surface-500">Wird im Hero-Slider stumm abgespielt.</p>
+          </div>
         </div>
         <div>
           <Label>Ticket-URL (optional)</Label>
