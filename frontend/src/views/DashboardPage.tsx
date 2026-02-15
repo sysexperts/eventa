@@ -185,9 +185,9 @@ function ScrapedEventEditModal({
               </div>
 
               <div>
-                <Label>Hero Video (YouTube-URL)</Label>
-                <Input type="url" value={heroVideoUrl} onChange={(e) => setHeroVideoUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                <p className="mt-1 text-[11px] text-surface-500">Optional: YouTube-Link für Video im Hero-Slider. Wird automatisch abgespielt (stumm).</p>
+                <Label>Hero Video (optional)</Label>
+                <Input type="url" value={heroVideoUrl} onChange={(e) => setHeroVideoUrl(e.target.value)} placeholder="https://example.com/video.mp4" />
+                <p className="mt-1 text-[11px] text-surface-500">Direkte Video-URL (MP4, WebM, OGG). Wird im Hero-Slider stumm abgespielt.</p>
               </div>
 
               {imageUrl && (

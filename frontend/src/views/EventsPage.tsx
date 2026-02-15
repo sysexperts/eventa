@@ -55,11 +55,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   SONSTIGES: "✨",
 };
 
-/* ═══════════════════ YOUTUBE HELPERS ═══════════════════ */
+/* ═══════════════════ VIDEO HELPERS ═══════════════════ */
 
-function extractYouTubeId(url: string): string | null {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/);
-  return m ? m[1] : null;
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov)([?#]|$)/i.test(url) || url.includes("/video/");
 }
 
 /* ═══════════════════ HERO SLIDER ═══════════════════ */
@@ -105,8 +104,8 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
 
   // Determine if current slide has a video
   const slide = slides[current];
-  const videoId = slide?.heroVideoUrl ? extractYouTubeId(slide.heroVideoUrl) : null;
-  const showVideo = videoEnabled && !!videoId;
+  const heroVideo = slide?.heroVideoUrl && isVideoUrl(slide.heroVideoUrl) ? slide.heroVideoUrl : null;
+  const showVideo = videoEnabled && !!heroVideo;
 
   // Handle slide changes: start timers or wait for video
   useEffect(() => {
@@ -149,20 +148,18 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
           </div>
         ))}
 
-        {/* YouTube video overlay – iframe embed */}
-        {showVideo && videoId && (
-          <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: "none", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: "50%", left: "50%", width: "180%", height: "180%", transform: "translate(-50%, -50%)" }}>
-              <iframe
-                key={`yt-${videoId}-${current}`}
-                src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&loop=1&playlist=${videoId}&start=0`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-                tabIndex={-1}
-                title="Hero Video"
-              />
-            </div>
+        {/* Video overlay */}
+        {showVideo && heroVideo && (
+          <div className="absolute inset-0" style={{ zIndex: 2 }}>
+            <video
+              key={`vid-${current}`}
+              src={heroVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+            />
           </div>
         )}
 
@@ -171,7 +168,7 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
         <div className="absolute inset-0 z-[3] bg-gradient-to-t from-surface-950 via-surface-950/20 to-transparent" />
 
         {/* Video toggle button (top right) */}
-        {videoId && (
+        {heroVideo && (
           <button
             onClick={toggleVideo}
             className="absolute top-4 right-4 z-[6] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white hover:scale-110"
@@ -232,7 +229,7 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
             <button onClick={() => nav(current - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 z-[5] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 text-white/70 backdrop-blur-md transition-all hover:bg-black/50 hover:text-white hover:scale-110">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <button onClick={() => nav(current + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 z-[5] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 text-white/70 backdrop-blur-md transition-all hover:bg-black/50 hover:text-white hover:scale-110" style={{ top: videoId ? "calc(50% + 24px)" : "50%" }}>
+            <button onClick={() => nav(current + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 z-[5] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 text-white/70 backdrop-blur-md transition-all hover:bg-black/50 hover:text-white hover:scale-110" style={{ top: heroVideo ? "calc(50% + 24px)" : "50%" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </>
@@ -248,7 +245,7 @@ function HeroSlider({ slides }: { slides: EventListItem[] }) {
             )}
             <div className="flex justify-center gap-2 py-3">
               {slides.map((s, i) => {
-                const hasVid = s.heroVideoUrl && extractYouTubeId(s.heroVideoUrl);
+                const hasVid = s.heroVideoUrl && isVideoUrl(s.heroVideoUrl);
                 return (
                   <button
                     key={i}

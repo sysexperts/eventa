@@ -294,9 +294,9 @@ export function EventFormPage({ mode }: Props) {
           </div>
         </div>
         <div>
-          <Label>Hero Video (YouTube-URL, optional)</Label>
-          <Input type="url" placeholder="https://www.youtube.com/watch?v=..." value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} />
-          <p className="mt-1 text-[11px] text-surface-500">YouTube-Link für Video im Hero-Slider. Wird automatisch stumm abgespielt.</p>
+          <Label>Hero Video (optional)</Label>
+          <Input type="url" placeholder="https://example.com/video.mp4" value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} />
+          <p className="mt-1 text-[11px] text-surface-500">Direkte Video-URL (MP4, WebM, OGG). Wird im Hero-Slider stumm abgespielt.</p>
         </div>
         <div>
           <Label>Ticket-URL (optional)</Label>

@@ -191,9 +191,8 @@ function formatRelativeDate(iso: string): string {
   return formatDate(iso);
 }
 
-function extractYouTubeId(url: string): string | null {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/);
-  return m ? m[1] : null;
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov)([?#]|$)/i.test(url) || url.includes("/video/");
 }
 
 const HERO_INTERVAL = 6000;
@@ -215,8 +214,8 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   const videoTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const activeEvent = heroImages[activeIdx];
-  const videoId = activeEvent?.heroVideoUrl ? extractYouTubeId(activeEvent.heroVideoUrl) : null;
-  const showVideo = videoEnabled && !!videoId;
+  const heroVideo = activeEvent?.heroVideoUrl && isVideoUrl(activeEvent.heroVideoUrl) ? activeEvent.heroVideoUrl : null;
+  const showVideo = videoEnabled && !!heroVideo;
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -264,25 +263,23 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
         />
       )}
 
-      {/* YouTube video overlay */}
-      {showVideo && videoId && (
-        <div className="absolute inset-0" style={{ zIndex: 1, pointerEvents: "none", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: "50%", left: "50%", width: "180%", height: "180%", transform: "translate(-50%, -50%)" }}>
-            <iframe
-              key={`hp-yt-${videoId}-${activeIdx}`}
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&loop=1&playlist=${videoId}&start=0`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-              tabIndex={-1}
-              title="Hero Video"
-            />
-          </div>
+      {/* Video overlay */}
+      {showVideo && heroVideo && (
+        <div className="absolute inset-0" style={{ zIndex: 1 }}>
+          <video
+            key={`hp-vid-${activeIdx}`}
+            src={heroVideo}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover"
+          />
         </div>
       )}
 
       {/* Video toggle button */}
-      {videoId && (
+      {heroVideo && (
         <button
           onClick={() => setVideoEnabled((p) => !p)}
           className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white hover:scale-110"
