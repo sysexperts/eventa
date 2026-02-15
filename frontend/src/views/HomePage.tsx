@@ -715,22 +715,44 @@ export function HomePage() {
       )}
 
       {/* ═══════════════════ CITIES / STÄDTE ═══════════════════ */}
-      {cities.length > 0 && (
-        <section className="border-y border-white/[0.06] bg-white/[0.015]">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <SectionHeader title="Events nach Stadt" subtitle="Entdecke was in deiner Stadt los ist" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {cities.map((city) => (
+      {cities.length > 0 && (() => {
+        const gradients = [
+          "from-accent-500/20 via-accent-500/5 to-transparent",
+          "from-neon-purple/20 via-neon-purple/5 to-transparent",
+          "from-neon-pink/20 via-neon-pink/5 to-transparent",
+          "from-neon-cyan/20 via-neon-cyan/5 to-transparent",
+          "from-neon-green/20 via-neon-green/5 to-transparent",
+          "from-amber-500/20 via-amber-500/5 to-transparent",
+        ];
+        const accents = [
+          "bg-accent-500/20 text-accent-400 ring-accent-500/20",
+          "bg-neon-purple/20 text-neon-purple ring-neon-purple/20",
+          "bg-neon-pink/20 text-neon-pink ring-neon-pink/20",
+          "bg-neon-cyan/20 text-neon-cyan ring-neon-cyan/20",
+          "bg-neon-green/20 text-neon-green ring-neon-green/20",
+          "bg-amber-500/20 text-amber-400 ring-amber-500/20",
+        ];
+        return (
+        <section className="border-y border-white/[0.06] bg-gradient-to-b from-white/[0.02] to-transparent">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <SectionHeader title="Events nach Stadt" subtitle="Entdecke was in deiner Nähe los ist" linkTo="/events" linkLabel="Alle Städte" />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {cities.map((city, i) => (
                 <Link
                   key={city.name}
                   to={`/events?city=${encodeURIComponent(city.name)}`}
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-center transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.06]"
+                  className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.06] hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-500/5 to-neon-purple/5 opacity-0 transition-opacity group-hover:opacity-100" />
-                  <div className="relative">
-                    <div className="text-2xl">📍</div>
-                    <div className="mt-2 text-sm font-semibold text-white">{city.name}</div>
-                    <div className="mt-1 text-xs text-surface-500">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${gradients[i % gradients.length]} opacity-0 transition-opacity duration-500 group-hover:opacity-100`} />
+                  <div className="relative flex flex-col items-center px-4 py-7">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${accents[i % accents.length]} ring-1 transition-transform duration-300 group-hover:scale-110`}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </div>
+                    <div className="mt-3.5 text-sm font-bold text-white tracking-wide">{city.name}</div>
+                    <div className="mt-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-surface-400 transition-colors group-hover:bg-white/[0.1] group-hover:text-surface-300">
                       {city.count} {city.count === 1 ? "Event" : "Events"}
                     </div>
                   </div>
@@ -739,7 +761,8 @@ export function HomePage() {
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* ═══════════════════ STATS ═══════════════════ */}
       <section className="border-b border-white/[0.06] bg-white/[0.02]">
