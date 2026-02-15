@@ -433,90 +433,94 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
 const FLAG_CDN = "https://hatscripts.github.io/circle-flags/flags";
 
 const CULTURES = [
-  { slug: "turkish", name: "Türkisch", flag: "tr", img: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=400&q=80" },
-  { slug: "greek", name: "Griechisch", flag: "gr", img: "https://images.unsplash.com/photo-1503152394-c571994fd383?auto=format&fit=crop&w=400&q=80" },
-  { slug: "romanian", name: "Rumänisch", flag: "ro", img: "https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?auto=format&fit=crop&w=400&q=80" },
-  { slug: "arabic", name: "Arabisch", flag: "sa", img: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?auto=format&fit=crop&w=400&q=80" },
-  { slug: "polish", name: "Polnisch", flag: "pl", img: "https://images.unsplash.com/photo-1519197924294-4ba991a11128?auto=format&fit=crop&w=400&q=80" },
-  { slug: "italian", name: "Italienisch", flag: "it", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=400&q=80" },
-  { slug: "balkan", name: "Balkan", flag: "rs", img: "https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?auto=format&fit=crop&w=400&q=80" },
-  { slug: "latin", name: "Lateinamerika", flag: "br", img: "https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=400&q=80" },
-  { slug: "african", name: "Afrikanisch", flag: "ng", img: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=400&q=80" },
-  { slug: "persian", name: "Persisch", flag: "ir", img: "https://images.unsplash.com/photo-1565711561500-49678a10a63f?auto=format&fit=crop&w=400&q=80" },
-  { slug: "kurdish", name: "Kurdisch", flag: "iq", img: "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&w=400&q=80" },
-  { slug: "russian", name: "Russisch", flag: "ru", img: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" },
-  { slug: "spanish", name: "Spanisch", flag: "es", img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&w=400&q=80" },
-  { slug: "portuguese", name: "Portugiesisch", flag: "pt", img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=400&q=80" },
-  { slug: "asian", name: "Asiatisch", flag: "cn", img: "https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=400&q=80" },
-  { slug: "international", name: "International", flag: "eu", img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=400&q=80" },
+  { slug: "turkish", name: "Türkisch", flag: "tr", img: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=600&q=80" },
+  { slug: "greek", name: "Griechisch", flag: "gr", img: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { slug: "romanian", name: "Rumänisch", flag: "ro", img: "https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?auto=format&fit=crop&w=600&q=80" },
+  { slug: "arabic", name: "Arabisch", flag: "sa", img: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?auto=format&fit=crop&w=600&q=80" },
+  { slug: "polish", name: "Polnisch", flag: "pl", img: "https://images.unsplash.com/photo-1607427293702-036707e560d7?auto=format&fit=crop&w=600&q=80" },
+  { slug: "italian", name: "Italienisch", flag: "it", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=600&q=80" },
+  { slug: "balkan", name: "Balkan", flag: "rs", img: "https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?auto=format&fit=crop&w=600&q=80" },
+  { slug: "latin", name: "Lateinamerika", flag: "br", img: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=600&q=80" },
+  { slug: "african", name: "Afrikanisch", flag: "ng", img: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=600&q=80" },
+  { slug: "persian", name: "Persisch", flag: "ir", img: "https://images.unsplash.com/photo-1565711561500-49678a10a63f?auto=format&fit=crop&w=600&q=80" },
+  { slug: "kurdish", name: "Kurdisch", flag: "iq", img: "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&w=600&q=80" },
+  { slug: "russian", name: "Russisch", flag: "ru", img: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=600&q=80" },
+  { slug: "spanish", name: "Spanisch", flag: "es", img: "https://images.unsplash.com/photo-1509840841025-9088ba78a826?auto=format&fit=crop&w=600&q=80" },
+  { slug: "portuguese", name: "Portugiesisch", flag: "pt", img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=600&q=80" },
+  { slug: "asian", name: "Asiatisch", flag: "cn", img: "https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=600&q=80" },
+  { slug: "international", name: "International", flag: "eu", img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" },
 ];
 
 function CommunityCarousel() {
   return (
-    <section className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <section className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       {/* Section header */}
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1 text-[11px] font-medium uppercase tracking-wider text-accent-400 backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-400 animate-pulse" />
-            Kulturen entdecken
-          </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            Communities
-          </h2>
-          <p className="mt-1.5 text-sm text-surface-400">Finde Events deiner Kultur und Community</p>
-        </div>
-        <Link to="/events" className="group flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-medium text-accent-400 backdrop-blur-sm transition-all duration-300 hover:border-accent-500/30 hover:bg-accent-500/10 hover:text-accent-300">
-          Alle anzeigen
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-0.5"><path d="m9 18 6-6-6-6"/></svg>
-        </Link>
+      <div className="mb-10 text-center">
+        <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+          Entdecke <span className="text-gradient">Kulturen</span>
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-surface-400 sm:text-base">
+          Finde Events und Veranstaltungen aus deiner Community
+        </p>
       </div>
 
-      {/* Culture grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8">
+      {/* Culture grid — 2 rows of 8 on desktop, scrollable on mobile */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
         {CULTURES.map((c) => (
           <Link
             key={c.slug}
             to={`/events?community=${c.slug}`}
-            className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface-900/60 transition-all duration-500 hover:border-accent-500/30 hover:scale-[1.03] hover:shadow-xl hover:shadow-accent-500/10"
+            className="group relative isolate flex flex-col items-center"
           >
-            <div className="relative aspect-[3/4] w-full overflow-hidden">
-              {/* Background image */}
+            {/* Card */}
+            <div className="relative w-full overflow-hidden rounded-2xl aspect-[3/4] transition-transform duration-500 ease-out group-hover:scale-[1.02]">
+              {/* Image */}
               <img
                 src={c.img}
                 alt={c.name}
                 loading="lazy"
-                className="h-full w-full object-cover transition-all duration-700 group-hover:scale-110"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
               />
 
-              {/* Dark gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 transition-all duration-500 group-hover:from-black/80 group-hover:via-black/20" />
+              {/* Gradient overlays */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/0" />
 
-              {/* Accent glow on hover */}
-              <div className="absolute inset-0 bg-gradient-to-t from-accent-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              {/* Colored bottom glow on hover */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-accent-500/20 via-accent-500/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-              {/* Inner ring */}
-              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.06] transition-all duration-500 group-hover:ring-white/[0.15]" />
+              {/* Border */}
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all duration-500 group-hover:ring-white/25" />
 
-              {/* Content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-end p-2.5 pb-3.5">
-                {/* Flag with glow */}
-                <div className="relative mb-2">
-                  <div className="absolute -inset-1.5 rounded-full bg-accent-500/25 blur-lg opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              {/* Flag — centered in card */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative transition-transform duration-500 ease-out group-hover:-translate-y-1">
+                  <div className="absolute -inset-3 rounded-full bg-white/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-80" />
                   <img
                     src={`${FLAG_CDN}/${c.flag}.svg`}
-                    alt={c.name}
-                    className="relative h-9 w-9 sm:h-11 sm:w-11 rounded-full shadow-lg shadow-black/50 ring-2 ring-white/25 transition-all duration-500 group-hover:scale-110 group-hover:ring-white/50 group-hover:shadow-accent-500/30"
+                    alt=""
+                    className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl shadow-black/60 ring-[3px] ring-white/30 transition-all duration-500 group-hover:ring-white/60 group-hover:shadow-black/40"
                   />
                 </div>
-                {/* Name */}
-                <span className="text-[11px] sm:text-xs font-bold text-center leading-tight text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors duration-300 group-hover:text-white">
+              </div>
+
+              {/* Name label at bottom */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3">
+                <span className="rounded-full bg-black/40 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/90 backdrop-blur-md ring-1 ring-white/10 transition-all duration-300 group-hover:bg-black/60 group-hover:text-white group-hover:ring-white/20 sm:text-xs">
                   {c.name}
                 </span>
               </div>
             </div>
           </Link>
         ))}
+      </div>
+
+      {/* "Alle anzeigen" link */}
+      <div className="mt-8 flex justify-center">
+        <Link to="/events" className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-surface-300 backdrop-blur-sm transition-all duration-300 hover:border-accent-500/30 hover:bg-accent-500/5 hover:text-white">
+          Alle Communities anzeigen
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1"><path d="m9 18 6-6-6-6"/></svg>
+        </Link>
       </div>
     </section>
   );
