@@ -10,6 +10,7 @@ import { EventFormPage } from "../views/EventFormPage";
 import { AdminPage } from "../views/AdminPage";
 import { ArtistsAdminPage } from "../views/ArtistsAdminPage";
 import { ArtistProfilePage } from "../views/ArtistProfilePage";
+import { CommunityPage } from "../views/CommunityPage";
 import { ProfilePage } from "../views/ProfilePage";
 import { FavoritesPage } from "../views/FavoritesPage";
 import { useAuth } from "../state/auth";
@@ -41,6 +42,7 @@ export function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/community/:slug" element={<CommunityPage />} />
         <Route path="/artists/:slug" element={<ArtistProfilePage />} />
         <Route path="/login" element={<RedirectWithModal mode="login" />} />
         <Route path="/register" element={<RedirectWithModal mode="register" />} />

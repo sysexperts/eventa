@@ -14,6 +14,8 @@ import { scrapeRouter } from "./routes/scrape.js";
 import { monitoredUrlsRouter } from "./routes/monitored-urls.js";
 import { adminRouter } from "./routes/admin.js";
 import { artistsRouter } from "./routes/artists.js";
+import { communitiesRouter } from "./routes/communities.js";
+import { commentsRouter } from "./routes/comments.js";
 import { startCronjob } from "./services/cronjob.js";
 
 const app = express();
@@ -48,6 +50,8 @@ app.use("/api/scrape", scrapeRouter);
 app.use("/api/monitored-urls", monitoredUrlsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/artists", artistsRouter);
+app.use("/api/communities", communitiesRouter);
+app.use("/api", commentsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

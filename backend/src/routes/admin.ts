@@ -247,3 +247,211 @@ adminRouter.get("/scraped-events", requireAuth, requireAdmin, async (_req, res) 
   });
   res.json({ events });
 });
+
+// ─── User Search (with pagination) ───────────────────────────────────────────
+adminRouter.get("/users/search", requireAuth, requireAdmin, async (req, res) => {
+  const q = (req.query.q as string || "").trim();
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const skip = (page - 1) * limit;
+
+  const where = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { email: { contains: q, mode: "insensitive" as const } },
+          { companyName: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        companyName: true,
+        isPartner: true,
+        isAdmin: true,
+        promotionTokens: true,
+        createdAt: true,
+        _count: { select: { events: true, communityMembers: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  res.json({ users, total, page, pages: Math.ceil(total / limit) });
+});
+
+// ─── Community CRUD (Master Admin) ────────────────────────────────────────────
+
+// List all communities (including inactive)
+adminRouter.get("/communities", requireAuth, requireAdmin, async (_req, res) => {
+  const communities = await prisma.community.findMany({
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      description: true,
+      imageUrl: true,
+      bannerUrl: true,
+      country: true,
+      language: true,
+      isActive: true,
+      createdAt: true,
+      _count: { select: { members: true, events: true, inviteCodes: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ communities });
+});
+
+// Create community
+const createCommunitySchema = z.object({
+  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, "Nur Kleinbuchstaben, Zahlen und Bindestriche"),
+  name: z.string().min(1).max(100),
+  description: z.string().max(2000).optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  bannerUrl: z.string().url().optional().nullable(),
+  country: z.string().max(10).optional().nullable(),
+  language: z.string().max(10).optional().nullable(),
+});
+
+adminRouter.post("/communities", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = createCommunitySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const existing = await prisma.community.findUnique({ where: { slug: parsed.data.slug } });
+  if (existing) return res.status(409).json({ error: "Slug bereits vergeben." });
+
+  const community = await prisma.community.create({
+    data: {
+      slug: parsed.data.slug,
+      name: parsed.data.name,
+      description: parsed.data.description || "",
+      imageUrl: parsed.data.imageUrl || null,
+      bannerUrl: parsed.data.bannerUrl || null,
+      country: parsed.data.country || null,
+      language: parsed.data.language || null,
+    },
+  });
+  res.status(201).json({ community });
+});
+
+// Update community
+const adminUpdateCommunitySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(2000).optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  bannerUrl: z.string().url().optional().nullable(),
+  country: z.string().max(10).optional().nullable(),
+  language: z.string().max(10).optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+adminRouter.put("/communities/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const community = await prisma.community.findUnique({ where: { id } });
+  if (!community) return res.status(404).json({ error: "Community nicht gefunden." });
+
+  const parsed = adminUpdateCommunitySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const updated = await prisma.community.update({
+    where: { id },
+    data: parsed.data as any,
+  });
+  res.json({ community: updated });
+});
+
+// Delete community
+adminRouter.delete("/communities/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const community = await prisma.community.findUnique({ where: { id } });
+  if (!community) return res.status(404).json({ error: "Community nicht gefunden." });
+
+  await prisma.community.delete({ where: { id } });
+  res.status(204).send();
+});
+
+// ─── Assign community role (Master Admin) ─────────────────────────────────────
+const assignRoleSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(["ADMIN", "MODERATOR", "MEMBER"]),
+});
+
+adminRouter.post("/communities/:id/assign-role", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const parsed = assignRoleSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const community = await prisma.community.findUnique({ where: { id } });
+  if (!community) return res.status(404).json({ error: "Community nicht gefunden." });
+
+  const user = await prisma.user.findUnique({ where: { id: parsed.data.userId } });
+  if (!user) return res.status(404).json({ error: "User nicht gefunden." });
+
+  const member = await prisma.communityMember.upsert({
+    where: { communityId_userId: { communityId: id, userId: parsed.data.userId } },
+    create: { communityId: id, userId: parsed.data.userId, role: parsed.data.role },
+    update: { role: parsed.data.role },
+    select: { id: true, role: true, user: { select: { id: true, name: true, email: true } } },
+  });
+
+  res.json({ member });
+});
+
+// ─── Get community members (admin view with search) ──────────────────────────
+adminRouter.get("/communities/:id/members", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const q = (req.query.q as string || "").trim();
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const skip = (page - 1) * limit;
+
+  const where: any = { communityId: id };
+  if (q) {
+    where.user = {
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+      ],
+    };
+  }
+
+  const [members, total] = await Promise.all([
+    prisma.communityMember.findMany({
+      where,
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.communityMember.count({ where }),
+  ]);
+
+  res.json({ members, total, page, pages: Math.ceil(total / limit) });
+});
+
+// ─── Remove member from community (admin) ────────────────────────────────────
+adminRouter.delete("/communities/:id/members/:memberId", requireAuth, requireAdmin, async (req, res) => {
+  const { id, memberId } = req.params;
+  const member = await prisma.communityMember.findFirst({
+    where: { id: memberId, communityId: id },
+  });
+  if (!member) return res.status(404).json({ error: "Mitglied nicht gefunden." });
+
+  await prisma.communityMember.delete({ where: { id: memberId } });
+  res.status(204).send();
+});

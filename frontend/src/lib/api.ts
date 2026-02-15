@@ -199,6 +199,55 @@ export type DashboardStats = {
   events: DashboardEventStat[];
 };
 
+export type Community = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  imageUrl?: string | null;
+  bannerUrl?: string | null;
+  country?: string | null;
+  language?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+  _count?: { members: number; events: number; inviteCodes?: number };
+  members?: { role: string; user: { id: string; name: string }; joinedAt: string }[];
+};
+
+export type CommunityMember = {
+  id: string;
+  role: "ADMIN" | "MODERATOR" | "MEMBER";
+  joinedAt: string;
+  user: { id: string; name: string; email?: string };
+};
+
+export type CommunityInviteCode = {
+  id: string;
+  code: string;
+  label: string;
+  maxUses?: number | null;
+  usedCount: number;
+  expiresAt?: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type EventComment = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; name: string };
+  parentId?: string | null;
+  replies?: EventComment[];
+};
+
+export type EventAttendance = {
+  count: number;
+  attending: boolean;
+  attendees: { user: { id: string; name: string }; createdAt: string }[];
+};
+
 export type ScrapedEvent = {
   id: string;
   sourceUrl: string;
@@ -350,6 +399,22 @@ export const api = {
       request<{ newEvents: number; skipped: number; error?: string }>(`/api/admin/global-sources/${id}/scrape-now`, {
         method: "POST",
       }),
+    searchUsers: (q = "", page = 1) =>
+      request<{ users: (AdminUser & { _count: { events: number; communityMembers: number } })[]; total: number; page: number; pages: number }>(`/api/admin/users/search?q=${encodeURIComponent(q)}&page=${page}`),
+    listCommunities: () =>
+      request<{ communities: Community[] }>("/api/admin/communities"),
+    createCommunity: (data: { slug: string; name: string; description?: string; imageUrl?: string | null; bannerUrl?: string | null; country?: string | null; language?: string | null }) =>
+      request<{ community: Community }>("/api/admin/communities", { method: "POST", body: JSON.stringify(data) }),
+    updateCommunity: (id: string, data: Partial<Community> & { isActive?: boolean }) =>
+      request<{ community: Community }>(`/api/admin/communities/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    deleteCommunity: (id: string) =>
+      request<void>(`/api/admin/communities/${id}`, { method: "DELETE" }),
+    assignCommunityRole: (communityId: string, userId: string, role: string) =>
+      request<{ member: CommunityMember }>(`/api/admin/communities/${communityId}/assign-role`, { method: "POST", body: JSON.stringify({ userId, role }) }),
+    listCommunityMembers: (communityId: string, q = "", page = 1) =>
+      request<{ members: CommunityMember[]; total: number; page: number; pages: number }>(`/api/admin/communities/${communityId}/members?q=${encodeURIComponent(q)}&page=${page}`),
+    removeCommunityMember: (communityId: string, memberId: string) =>
+      request<void>(`/api/admin/communities/${communityId}/members/${memberId}`, { method: "DELETE" }),
   },
   artists: {
     list: () => request<{ artists: Artist[] }>("/api/artists"),
@@ -388,6 +453,32 @@ export const api = {
       }),
     deleteReview: (slug: string) =>
       request<void>(`/api/artists/${slug}/reviews`, { method: "DELETE" }),
+  },
+  communities: {
+    list: () => request<{ communities: Community[] }>("/api/communities"),
+    get: (slug: string) => request<{ community: Community }>(`/api/communities/${slug}`),
+    events: (slug: string, page = 1) => request<{ events: EventListItem[]; total: number; page: number; pages: number }>(`/api/communities/${slug}/events?page=${page}`),
+    members: (slug: string, page = 1) => request<{ members: CommunityMember[]; total: number; page: number; pages: number }>(`/api/communities/${slug}/members?page=${page}`),
+    join: (slug: string) => request<{ member: any }>(`/api/communities/${slug}/join`, { method: "POST" }),
+    leave: (slug: string) => request<void>(`/api/communities/${slug}/leave`, { method: "POST" }),
+    joinByCode: (code: string) => request<{ member: any; community: Community }>("/api/communities/join-by-code", { method: "POST", body: JSON.stringify({ code }) }),
+    myMembership: (slug: string) => request<{ membership: { id: string; role: string; joinedAt: string } | null }>(`/api/communities/${slug}/my-membership`),
+    update: (slug: string, data: Partial<Community>) => request<{ community: Community }>(`/api/communities/${slug}`, { method: "PUT", body: JSON.stringify(data) }),
+    updateMemberRole: (slug: string, memberId: string, role: string) => request<{ member: CommunityMember }>(`/api/communities/${slug}/members/${memberId}`, { method: "PUT", body: JSON.stringify({ role }) }),
+    removeMember: (slug: string, memberId: string) => request<void>(`/api/communities/${slug}/members/${memberId}`, { method: "DELETE" }),
+    createInviteCode: (slug: string, data: { label?: string; maxUses?: number | null; expiresInDays?: number | null }) => request<{ invite: CommunityInviteCode }>(`/api/communities/${slug}/invite-codes`, { method: "POST", body: JSON.stringify(data) }),
+    listInviteCodes: (slug: string) => request<{ codes: CommunityInviteCode[] }>(`/api/communities/${slug}/invite-codes`),
+    deleteInviteCode: (slug: string, codeId: string) => request<void>(`/api/communities/${slug}/invite-codes/${codeId}`, { method: "DELETE" }),
+  },
+  comments: {
+    list: (eventId: string) => request<{ comments: EventComment[]; total: number }>(`/api/events/${eventId}/comments`),
+    create: (eventId: string, data: { text: string; parentId?: string }) => request<{ comment: EventComment }>(`/api/events/${eventId}/comments`, { method: "POST", body: JSON.stringify(data) }),
+    update: (commentId: string, text: string) => request<{ comment: EventComment }>(`/api/comments/${commentId}`, { method: "PUT", body: JSON.stringify({ text }) }),
+    remove: (commentId: string) => request<void>(`/api/comments/${commentId}`, { method: "DELETE" }),
+  },
+  attendance: {
+    get: (eventId: string) => request<EventAttendance>(`/api/events/${eventId}/attendance`),
+    toggle: (eventId: string) => request<{ attending: boolean; count: number }>(`/api/events/${eventId}/attend`, { method: "POST" }),
   },
   monitoredUrls: {
     list: () => request<{ urls: MonitoredUrl[] }>("/api/monitored-urls"),

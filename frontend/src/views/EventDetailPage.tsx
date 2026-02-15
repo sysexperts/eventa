@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api, type EventDetail, type SimilarEvent, type User } from "../lib/api";
+import { api, type EventDetail, type SimilarEvent, type User, type EventComment, type EventAttendance } from "../lib/api";
 import { categoryLabel, formatDateTime, formatDate } from "../lib/format";
 import { FavoriteButton } from "../ui/FavoriteButton";
 
@@ -102,6 +102,35 @@ export function EventDetailPage() {
   const [togglingFeatured, setTogglingFeatured] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
+  // Attendance state
+  const [attendance, setAttendance] = useState<EventAttendance | null>(null);
+  const [togglingAttend, setTogglingAttend] = useState(false);
+
+  // Comments state
+  const [comments, setComments] = useState<EventComment[]>([]);
+  const [commentsTotal, setCommentsTotal] = useState(0);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  const loadComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.comments.list(id);
+      setComments(res.comments);
+      setCommentsTotal(res.total);
+    } catch { /* ignore */ }
+  }, [id]);
+
+  const loadAttendance = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.attendance.get(id);
+      setAttendance(res);
+    } catch { /* ignore */ }
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     (async () => {
@@ -117,7 +146,9 @@ export function EventDetailPage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+    loadComments();
+    loadAttendance();
+  }, [id, loadComments, loadAttendance]);
 
   useEffect(() => {
     api.me.get().then((r) => {
@@ -125,6 +156,38 @@ export function EventDetailPage() {
       if (id) api.events.favoriteIds().then((f) => setIsFavorited(f.ids.includes(id))).catch(() => {});
     }).catch(() => {});
   }, [id]);
+
+  async function handleToggleAttend() {
+    if (!id || togglingAttend) return;
+    setTogglingAttend(true);
+    try {
+      const res = await api.attendance.toggle(id);
+      setAttendance((prev) => prev ? { ...prev, attending: res.attending, count: res.count } : prev);
+      await loadAttendance();
+    } catch { /* ignore */ }
+    setTogglingAttend(false);
+  }
+
+  async function handlePostComment(parentId?: string) {
+    if (!id) return;
+    const text = parentId ? replyText.trim() : newComment.trim();
+    if (!text) return;
+    setPostingComment(true);
+    try {
+      await api.comments.create(id, { text, parentId });
+      if (parentId) { setReplyText(""); setReplyTo(null); } else { setNewComment(""); }
+      await loadComments();
+    } catch { /* ignore */ }
+    setPostingComment(false);
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (!confirm("Kommentar wirklich löschen?")) return;
+    try {
+      await api.comments.remove(commentId);
+      await loadComments();
+    } catch { /* ignore */ }
+  }
 
   async function handleToggleFeatured() {
     if (!event || togglingFeatured) return;
@@ -300,6 +363,126 @@ export function EventDetailPage() {
               <h2 className="mb-4 text-lg font-bold text-white">Event teilen</h2>
               <ShareButtons title={event.title} url={shareUrl} />
             </div>
+
+            {/* Comments */}
+            <div className="border-t border-white/[0.06] pt-8">
+              <h2 className="mb-6 text-lg font-bold text-white">
+                Diskussion {commentsTotal > 0 && <span className="ml-1 text-sm font-normal text-surface-500">({commentsTotal})</span>}
+              </h2>
+
+              {/* New comment form */}
+              {user ? (
+                <div className="mb-6">
+                  <div className="flex gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-500/10 text-xs font-bold text-accent-400">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <textarea
+                        value={newComment}
+                        onChange={(e: any) => setNewComment(e.target.value)}
+                        placeholder="Schreibe einen Kommentar..."
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-surface-500 outline-none transition-all focus:border-accent-500/40 focus:bg-white/[0.06] focus:ring-2 focus:ring-accent-500/20"
+                      />
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={() => handlePostComment()}
+                          disabled={postingComment || !newComment.trim()}
+                          className="rounded-lg bg-accent-500 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-accent-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {postingComment ? "..." : "Kommentieren"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="mb-6 text-sm text-surface-500">Melde dich an, um zu kommentieren.</p>
+              )}
+
+              {/* Comment list */}
+              <div className="space-y-4">
+                {comments.map((c) => (
+                  <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/10 text-xs font-bold text-accent-400">
+                        {c.user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-white">{c.user.name}</span>
+                        <span className="ml-2 text-[11px] text-surface-600">{new Date(c.createdAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                      {user && (user.id === c.user.id || user.isAdmin) && (
+                        <button onClick={() => handleDeleteComment(c.id)} className="ml-auto text-xs text-surface-600 hover:text-red-400 transition-colors">
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-surface-300 leading-relaxed">{c.text}</p>
+
+                    {/* Reply button */}
+                    {user && (
+                      <button
+                        onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyText(""); }}
+                        className="mt-2 text-xs text-surface-500 hover:text-accent-400 transition-colors"
+                      >
+                        Antworten
+                      </button>
+                    )}
+
+                    {/* Reply form */}
+                    {replyTo === c.id && (
+                      <div className="mt-3 ml-10 flex gap-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e: any) => setReplyText(e.target.value)}
+                          placeholder="Antwort schreiben..."
+                          rows={2}
+                          className="flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-surface-500 outline-none focus:border-accent-500/40"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => handlePostComment(c.id)}
+                            disabled={postingComment || !replyText.trim()}
+                            className="rounded-lg bg-accent-500 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-accent-400 disabled:opacity-40"
+                          >
+                            Senden
+                          </button>
+                          <button onClick={() => setReplyTo(null)} className="text-[11px] text-surface-500 hover:text-white">
+                            Abbrechen
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Replies */}
+                    {c.replies && c.replies.length > 0 && (
+                      <div className="mt-3 ml-10 space-y-3 border-l-2 border-white/[0.06] pl-4">
+                        {c.replies.map((r) => (
+                          <div key={r.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-[10px] font-bold text-surface-400">
+                                {r.user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-xs font-medium text-white">{r.user.name}</span>
+                              <span className="text-[10px] text-surface-600">{new Date(r.createdAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                              {user && (user.id === r.user.id || user.isAdmin) && (
+                                <button onClick={() => handleDeleteComment(r.id)} className="ml-auto text-[10px] text-surface-600 hover:text-red-400">Löschen</button>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-surface-400 leading-relaxed">{r.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {comments.length === 0 && (
+                  <p className="text-center text-sm text-surface-600 py-8">Noch keine Kommentare. Sei der Erste!</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Column - Sidebar */}
@@ -383,6 +566,47 @@ export function EventDetailPage() {
                 </button>
               </div>
             )}
+
+            {/* Ich gehe hin */}
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-surface-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-surface-400">Teilnehmer</span>
+              </div>
+              <div className="mb-3 text-center">
+                <div className="text-3xl font-extrabold text-white">{attendance?.count ?? 0}</div>
+                <div className="text-xs text-surface-500">Personen nehmen teil</div>
+              </div>
+              {user && (
+                <button
+                  onClick={handleToggleAttend}
+                  disabled={togglingAttend}
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all disabled:opacity-50 ${
+                    attendance?.attending
+                      ? "bg-neon-green/15 border border-neon-green/30 text-neon-green hover:bg-neon-green/25"
+                      : "bg-accent-500/15 border border-accent-500/30 text-accent-400 hover:bg-accent-500/25"
+                  }`}
+                >
+                  {togglingAttend ? "..." : attendance?.attending ? "✓ Ich bin dabei!" : "Ich gehe hin"}
+                </button>
+              )}
+              {attendance && attendance.attendees && attendance.attendees.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {attendance.attendees.slice(0, 8).map((a, i) => (
+                    <div key={i} className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-500/10 text-[10px] font-bold text-accent-400" title={a.user.name}>
+                      {a.user.name.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                  {attendance.count > 8 && (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[10px] font-medium text-surface-500">
+                      +{attendance.count - 8}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Organizer */}
             <InfoCard

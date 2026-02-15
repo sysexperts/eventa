@@ -85,6 +85,12 @@ enum ScrapedEventStatus {
   REJECTED
 }
 
+enum CommunityRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -102,12 +108,15 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  events         Event[]
-  scrapedEvents  ScrapedEvent[]
-  monitoredUrls  MonitoredUrl[]
-  artistReviews  ArtistReview[]
-  artistFollows  ArtistFollow[]
-  favorites      EventFavorite[]
+  events              Event[]
+  scrapedEvents       ScrapedEvent[]
+  monitoredUrls       MonitoredUrl[]
+  artistReviews       ArtistReview[]
+  artistFollows       ArtistFollow[]
+  favorites           EventFavorite[]
+  communityMembers    CommunityMember[]
+  eventComments       EventComment[]
+  eventAttendances    EventAttendee[]
 }
 
 model Event {
@@ -135,10 +144,15 @@ model Event {
   organizerId String
   organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
+  communityId  String?
+  communityRef Community?    @relation(fields: [communityId], references: [id], onDelete: SetNull)
+
   artists      EventArtist[]
   views        EventView[]
   ticketClicks EventTicketClick[]
   favorites    EventFavorite[]
+  comments     EventComment[]
+  attendees    EventAttendee[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -146,6 +160,7 @@ model Event {
   @@index([category])
   @@index([startsAt])
   @@index([city])
+  @@index([communityId])
 }
 
 model Artist {
@@ -305,4 +320,104 @@ model EventFavorite {
   @@unique([userId, eventId])
   @@index([userId])
   @@index([eventId])
+}
+
+// ─── Community System ─────────────────────────────────────────────────────────
+
+model Community {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  imageUrl    String?
+  bannerUrl   String?
+  country     String?
+  language    String?
+  isActive    Boolean  @default(true)
+
+  members     CommunityMember[]
+  inviteCodes CommunityInviteCode[]
+  events      Event[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model CommunityMember {
+  id          String        @id @default(cuid())
+  role        CommunityRole @default(MEMBER)
+
+  communityId String
+  community   Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt    DateTime      @default(now())
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@index([role])
+}
+
+model CommunityInviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  label       String    @default("")
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  @@index([code])
+  @@index([communityId])
+}
+
+// ─── Event Comments ───────────────────────────────────────────────────────────
+
+model EventComment {
+  id        String   @id @default(cuid())
+  text      String
+  
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentId  String?
+  parent    EventComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   EventComment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+// ─── Event Attendance ("Ich gehe hin") ────────────────────────────────────────
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
 }

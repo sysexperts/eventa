@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../state/auth";
+import { api } from "../lib/api";
 
 const BG_IMAGES = [
   "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1920&q=80",
@@ -40,6 +41,7 @@ export function AuthModal() {
   const [regEmail, setRegEmail] = useState("");
   const [regPw, setRegPw] = useState("");
   const [regWebsite, setRegWebsite] = useState("");
+  const [regInviteCode, setRegInviteCode] = useState("");
   const [regErr, setRegErr] = useState("");
   const [regBusy, setRegBusy] = useState(false);
   const [regShowPw, setRegShowPw] = useState(false);
@@ -117,6 +119,17 @@ export function AuthModal() {
     setRegBusy(true);
     try {
       await register({ email: regEmail, password: regPw, name: regName, website: isOrganizer && regWebsite ? regWebsite : undefined });
+      // If invite code was provided, try to join the community
+      if (regInviteCode.trim()) {
+        try {
+          const result = await api.communities.joinByCode(regInviteCode.trim());
+          closeModal();
+          navigate(`/community/${result.community.slug}`);
+          return;
+        } catch {
+          // Code invalid but registration succeeded – just continue
+        }
+      }
       closeModal();
       navigate(isOrganizer ? "/dashboard" : "/events");
     } catch {
@@ -328,6 +341,17 @@ export function AuthModal() {
                       </div>
                     </div>
                   )}
+
+                  <div className="space-y-1.5">
+                    <label className={labelCls}>Einladungscode (optional)</label>
+                    <div className="relative">
+                      <div className={iconWrapCls}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                      </div>
+                      <input value={regInviteCode} onChange={(e: any) => setRegInviteCode(e.target.value)} placeholder="z.B. A1B2C3D4E5F6" className={inputCls} style={{ fontFamily: "monospace", letterSpacing: "0.1em" }} />
+                    </div>
+                    <p className="text-[11px] text-surface-600">Hast du einen Code? Damit wirst du automatisch einer Community zugeordnet.</p>
+                  </div>
 
                   {isOrganizer && (
                     <div className="flex items-start gap-2.5 rounded-xl border border-purple-500/20 bg-purple-500/[0.06] px-4 py-3">

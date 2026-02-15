@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type AdminUser, type GlobalSource, type EventCategory } from "../lib/api";
+import { api, type AdminUser, type GlobalSource, type EventCategory, type Community, type CommunityMember } from "../lib/api";
 import { useAuth } from "../state/auth";
 import { categoryLabel } from "../lib/format";
 import { Button, Input, Label } from "../ui/components";
@@ -20,7 +20,7 @@ const ALL_CATEGORIES: EventCategory[] = [
 
 export function AdminPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"users" | "sources">("users");
+  const [tab, setTab] = useState<"users" | "sources" | "communities">("users");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -28,11 +28,29 @@ export function AdminPage() {
   const [tokenInputs, setTokenInputs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
 
+  // User search state
+  const [userSearch, setUserSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<(AdminUser & { _count: { events: number; communityMembers: number } })[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchPages, setSearchPages] = useState(1);
+  const [searching, setSearching] = useState(false);
+
   // Global sources state
   const [sources, setSources] = useState<GlobalSource[]>([]);
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [newSource, setNewSource] = useState({ url: "", label: "", defaultCategory: "", defaultCity: "" });
   const [scrapeResult, setScrapeResult] = useState<Record<string, string>>({});
+
+  // Communities state
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(false);
+  const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
+  const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([]);
+  const [communityMembersLoading, setCommunityMembersLoading] = useState(false);
+  const [newCommunity, setNewCommunity] = useState({ slug: "", name: "", description: "", country: "", language: "" });
+  const [roleAssign, setRoleAssign] = useState({ userId: "", role: "MEMBER" });
+  const [memberSearch, setMemberSearch] = useState("");
 
   async function loadUsers() {
     try {
@@ -54,9 +72,40 @@ export function AdminPage() {
     finally { setSourcesLoading(false); }
   }
 
+  async function loadCommunities() {
+    setCommunitiesLoading(true);
+    try {
+      const res = await api.admin.listCommunities();
+      setCommunities(res.communities);
+    } catch { setCommunities([]); }
+    finally { setCommunitiesLoading(false); }
+  }
+
+  async function loadCommunityMembers(communityId: string, q = "") {
+    setCommunityMembersLoading(true);
+    try {
+      const res = await api.admin.listCommunityMembers(communityId, q);
+      setCommunityMembers(res.members);
+    } catch { setCommunityMembers([]); }
+    finally { setCommunityMembersLoading(false); }
+  }
+
+  async function searchUsers(q: string, page = 1) {
+    setSearching(true);
+    try {
+      const res = await api.admin.searchUsers(q, page);
+      setSearchResults(res.users);
+      setSearchTotal(res.total);
+      setSearchPage(res.page);
+      setSearchPages(res.pages);
+    } catch { setSearchResults([]); }
+    finally { setSearching(false); }
+  }
+
   useEffect(() => {
     loadUsers();
     loadSources();
+    loadCommunities();
   }, []);
 
   if (!user?.isAdmin) {
@@ -200,6 +249,14 @@ export function AdminPage() {
           Benutzer ({users.length})
         </button>
         <button
+          onClick={() => setTab("communities")}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "communities" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
+          }`}
+        >
+          Communities ({communities.length})
+        </button>
+        <button
           onClick={() => setTab("sources")}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             tab === "sources" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
@@ -326,6 +383,303 @@ export function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Communities Tab ─── */}
+      {tab === "communities" && (
+        <div className="space-y-4">
+          <p className="text-sm text-surface-400">
+            Communities verwalten. Du kannst neue Communities erstellen, Mitglieder verwalten und Rollen zuweisen.
+          </p>
+
+          {/* Create new community */}
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
+            <div className="text-sm font-medium text-white">Neue Community erstellen</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Slug *</Label>
+                <Input
+                  value={newCommunity.slug}
+                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, slug: e.target.value }))}
+                  placeholder="meine-community"
+                />
+              </div>
+              <div>
+                <Label>Name *</Label>
+                <Input
+                  value={newCommunity.name}
+                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Meine Community"
+                />
+              </div>
+              <div>
+                <Label>Beschreibung</Label>
+                <Input
+                  value={newCommunity.description}
+                  onChange={(e: any) => setNewCommunity((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="Kurze Beschreibung..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label>Land</Label>
+                  <Input
+                    value={newCommunity.country}
+                    onChange={(e: any) => setNewCommunity((p) => ({ ...p, country: e.target.value }))}
+                    placeholder="DE"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label>Sprache</Label>
+                  <Input
+                    value={newCommunity.language}
+                    onChange={(e: any) => setNewCommunity((p) => ({ ...p, language: e.target.value }))}
+                    placeholder="de"
+                  />
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={async () => {
+                if (!newCommunity.slug.trim() || !newCommunity.name.trim()) return;
+                setBusy("add-community");
+                try {
+                  await api.admin.createCommunity({
+                    slug: newCommunity.slug,
+                    name: newCommunity.name,
+                    description: newCommunity.description || undefined,
+                    country: newCommunity.country || undefined,
+                    language: newCommunity.language || undefined,
+                  });
+                  setNewCommunity({ slug: "", name: "", description: "", country: "", language: "" });
+                  await loadCommunities();
+                } catch (e: any) { alert(e?.message || "Fehler beim Erstellen."); }
+                finally { setBusy(null); }
+              }}
+              disabled={busy === "add-community" || !newCommunity.slug.trim() || !newCommunity.name.trim()}
+            >
+              {busy === "add-community" ? "Erstelle..." : "Community erstellen"}
+            </Button>
+          </div>
+
+          {/* Communities list */}
+          {communitiesLoading ? (
+            <div className="py-8 text-center text-sm text-surface-500">Lade Communities...</div>
+          ) : communities.length === 0 ? (
+            <div className="py-8 text-center text-sm text-surface-500">Noch keine Communities vorhanden.</div>
+          ) : (
+            <div className="space-y-2">
+              {communities.map((c) => {
+                const isExp = expandedCommunity === c.id;
+                return (
+                  <div key={c.id} className={`rounded-2xl border overflow-hidden ${
+                    c.isActive !== false ? "border-white/[0.06] bg-white/[0.03]" : "border-white/[0.04] bg-white/[0.01] opacity-60"
+                  }`}>
+                    <button
+                      onClick={() => {
+                        if (isExp) { setExpandedCommunity(null); }
+                        else { setExpandedCommunity(c.id); loadCommunityMembers(c.id); }
+                      }}
+                      className="w-full text-left p-4 hover:bg-white/[0.02] transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-white">{c.name}</span>
+                            <span className="text-xs text-surface-500">/{c.slug}</span>
+                            {c.country && (
+                              <img src={`https://hatscripts.github.io/circle-flags/flags/${c.country.toLowerCase()}.svg`} alt="" className="h-4 w-4" />
+                            )}
+                          </div>
+                          {c.description && <div className="mt-0.5 text-xs text-surface-500 line-clamp-1">{c.description}</div>}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-surface-500">
+                          <span>{c._count?.members ?? 0} Mitglieder</span>
+                          <span>{c._count?.events ?? 0} Events</span>
+                          <span className="text-accent-400">{isExp ? "▲" : "▼"}</span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {isExp && (
+                      <div className="border-t border-white/[0.06] p-4 space-y-4">
+                        {/* Toggle active */}
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-white">Status</div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await api.admin.updateCommunity(c.id, { isActive: c.isActive === false });
+                                  await loadCommunities();
+                                } catch { alert("Fehler."); }
+                              }}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                                c.isActive !== false
+                                  ? "bg-neon-green/20 text-neon-green"
+                                  : "bg-red-500/20 text-red-400"
+                              }`}
+                            >
+                              {c.isActive !== false ? "Aktiv" : "Deaktiviert"}
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Community "${c.name}" wirklich loeschen?`)) return;
+                                try { await api.admin.deleteCommunity(c.id); await loadCommunities(); }
+                                catch { alert("Fehler."); }
+                              }}
+                              className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/20"
+                            >
+                              Loeschen
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Assign role */}
+                        <div>
+                          <div className="text-sm font-medium text-white mb-2">Rolle zuweisen</div>
+                          <div className="flex gap-2">
+                            <Input
+                              value={roleAssign.userId}
+                              onChange={(e: any) => setRoleAssign((p) => ({ ...p, userId: e.target.value }))}
+                              placeholder="User-ID"
+                            />
+                            <select
+                              value={roleAssign.role}
+                              onChange={(e: any) => setRoleAssign((p) => ({ ...p, role: e.target.value }))}
+                              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none"
+                            >
+                              <option value="MEMBER">Member</option>
+                              <option value="MODERATOR">Moderator</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                            <Button
+                              onClick={async () => {
+                                if (!roleAssign.userId.trim()) return;
+                                try {
+                                  await api.admin.assignCommunityRole(c.id, roleAssign.userId.trim(), roleAssign.role);
+                                  setRoleAssign({ userId: "", role: "MEMBER" });
+                                  await loadCommunityMembers(c.id);
+                                } catch (e: any) { alert(e?.message || "Fehler."); }
+                              }}
+                              disabled={!roleAssign.userId.trim()}
+                            >
+                              Zuweisen
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* User search for role assignment */}
+                        <div>
+                          <div className="text-sm font-medium text-white mb-2">User suchen</div>
+                          <div className="flex gap-2">
+                            <Input
+                              value={userSearch}
+                              onChange={(e: any) => setUserSearch(e.target.value)}
+                              placeholder="Name oder E-Mail..."
+                              onKeyDown={(e: any) => { if (e.key === "Enter") searchUsers(userSearch); }}
+                            />
+                            <Button onClick={() => searchUsers(userSearch)} disabled={searching}>
+                              {searching ? "..." : "Suchen"}
+                            </Button>
+                          </div>
+                          {searchResults.length > 0 && (
+                            <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                              {searchResults.map((u) => (
+                                <div key={u.id} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs">
+                                  <div>
+                                    <span className="font-medium text-white">{u.name}</span>
+                                    <span className="ml-2 text-surface-500">{u.email}</span>
+                                    <span className="ml-2 text-surface-600">ID: {u.id.slice(0, 8)}...</span>
+                                  </div>
+                                  <button
+                                    onClick={() => setRoleAssign((p) => ({ ...p, userId: u.id }))}
+                                    className="rounded bg-accent-500/20 px-2 py-1 text-accent-400 hover:bg-accent-500/30"
+                                  >
+                                    Auswaehlen
+                                  </button>
+                                </div>
+                              ))}
+                              {searchPages > 1 && (
+                                <div className="flex items-center justify-center gap-2 pt-2">
+                                  <button disabled={searchPage <= 1} onClick={() => searchUsers(userSearch, searchPage - 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">← Zurueck</button>
+                                  <span className="text-xs text-surface-500">{searchPage}/{searchPages} ({searchTotal} Treffer)</span>
+                                  <button disabled={searchPage >= searchPages} onClick={() => searchUsers(userSearch, searchPage + 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">Weiter →</button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Members list */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium text-white">Mitglieder</div>
+                            <Input
+                              value={memberSearch}
+                              onChange={(e: any) => { setMemberSearch(e.target.value); loadCommunityMembers(c.id, e.target.value); }}
+                              placeholder="Mitglied suchen..."
+                              className="!w-48"
+                            />
+                          </div>
+                          {communityMembersLoading ? (
+                            <div className="text-xs text-surface-500">Lade...</div>
+                          ) : communityMembers.length === 0 ? (
+                            <div className="text-xs text-surface-500">Keine Mitglieder.</div>
+                          ) : (
+                            <div className="space-y-1">
+                              {communityMembers.map((m) => (
+                                <div key={m.id} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-white">{m.user.name}</span>
+                                    {m.user.email && <span className="text-surface-500">{m.user.email}</span>}
+                                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                                      m.role === "ADMIN" ? "bg-red-500/20 text-red-400" :
+                                      m.role === "MODERATOR" ? "bg-amber-500/20 text-amber-400" :
+                                      "bg-surface-700/50 text-surface-400"
+                                    }`}>{m.role}</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <select
+                                      value={m.role}
+                                      onChange={async (e: any) => {
+                                        try {
+                                          await api.communities.updateMemberRole(c.slug, m.id, e.target.value);
+                                          await loadCommunityMembers(c.id, memberSearch);
+                                        } catch { alert("Fehler."); }
+                                      }}
+                                      className="rounded bg-white/5 px-2 py-1 text-[10px] text-surface-400 focus:outline-none"
+                                    >
+                                      <option value="MEMBER">Member</option>
+                                      <option value="MODERATOR">Moderator</option>
+                                      <option value="ADMIN">Admin</option>
+                                    </select>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm(`${m.user.name} wirklich entfernen?`)) return;
+                                        try {
+                                          await api.admin.removeCommunityMember(c.id, m.id);
+                                          await loadCommunityMembers(c.id, memberSearch);
+                                        } catch { alert("Fehler."); }
+                                      }}
+                                      className="rounded bg-red-500/10 px-2 py-1 text-[10px] text-red-400 hover:bg-red-500/20"
+                                    >
+                                      Entfernen
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
