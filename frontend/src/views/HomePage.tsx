@@ -4,7 +4,6 @@ import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
 import { FavoriteButton } from "../ui/FavoriteButton";
 import { useAuth } from "../state/auth";
-import LiveStatsSection from "../components/LiveStatsSection";
 
 const CATEGORY_ICONS: Record<string, string> = {
   KONZERT: "🎵",
@@ -812,8 +811,6 @@ export function HomePage() {
           ))}
         </div>
       </section>
-
-      <LiveStatsSection />
 
       {/* ═══════════════════ FEATURES ═══════════════════ */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
