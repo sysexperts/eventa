@@ -794,24 +794,6 @@ export function HomePage() {
         );
       })()}
 
-      {/* ═══════════════════ STATS ═══════════════════ */}
-      <section className="border-b border-white/[0.06] bg-white/[0.02]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px sm:grid-cols-4">
-          {[
-            { value: "100%", label: "Kostenlos", sub: "Keine versteckten Kosten" },
-            { value: "6+", label: "Kategorien", sub: "Für jeden Geschmack" },
-            { value: "24/7", label: "Verfügbar", sub: "Immer online" },
-            { value: "0", label: "Tracking", sub: "Kein Browser-Storage" },
-          ].map((s, i) => (
-            <div key={s.label} className={`px-6 py-10 text-center ${i > 0 ? "border-l border-white/[0.06]" : ""}`}>
-              <div className="text-3xl font-extrabold text-gradient">{s.value}</div>
-              <div className="mt-1 text-sm font-semibold text-white">{s.label}</div>
-              <div className="mt-0.5 text-xs text-surface-500">{s.sub}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ═══════════════════ FEATURES ═══════════════════ */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
