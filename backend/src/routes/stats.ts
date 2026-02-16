@@ -20,15 +20,10 @@ statsRouter.get("/public", async (_req, res) => {
     // Count total users
     const usersCount = await prisma.user.count();
 
-    // Calculate average artist rating
-    const artistStats = await prisma.artist.aggregate({
-      where: {
-        avgRating: {
-          not: null
-        }
-      },
+    // Calculate average artist rating from reviews
+    const artistStats = await prisma.artistReview.aggregate({
       _avg: {
-        avgRating: true
+        rating: true
       },
       _count: {
         id: true
@@ -48,7 +43,7 @@ statsRouter.get("/public", async (_req, res) => {
       }
     });
 
-    // Get recent activity (last 24 hours)
+    // Get recent activity (last 24 hours) - only views, no ticket clicks
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
     const recentViews = await prisma.eventView.count({
@@ -59,15 +54,28 @@ statsRouter.get("/public", async (_req, res) => {
       }
     });
 
-    const recentTicketClicks = await prisma.eventTicketClick.count({
+    const recentActivity = await prisma.eventView.findMany({
       where: {
         createdAt: {
           gte: oneDayAgo
         }
-      }
+      },
+      select: {
+        event: {
+          select: {
+            title: true,
+            city: true
+          }
+        },
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
     });
 
-    // Get trending events (most views in last 7 days)
+    // Get trending events (most views in last 7 days) - only views, no ticket clicks
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     const trendingEvents = await prisma.event.findMany({
@@ -122,12 +130,11 @@ statsRouter.get("/public", async (_req, res) => {
     res.json({
       activeEvents: activeEventsCount,
       totalUsers: usersCount,
-      avgArtistRating: artistStats._avg.avgRating ? Math.round(artistStats._avg.avgRating * 10) / 10 : 0,
+      avgArtistRating: artistStats._avg.rating ? Math.round(artistStats._avg.rating * 10) / 10 : 0,
       totalArtists: artistStats._count.id,
       citiesCount: citiesStats.length,
       recentActivity: {
-        views24h: recentViews,
-        ticketClicks24h: recentTicketClicks
+        views24h: recentViews
       },
       trendingEvents: trendingEvents.map(e => ({
         id: e.id,
@@ -145,12 +152,12 @@ statsRouter.get("/public", async (_req, res) => {
   }
 });
 
-// Live activity feed (mock for now, can be enhanced with real activity tracking)
+// Live activity feed - only views, no ticket clicks
 statsRouter.get("/activity", async (_req, res) => {
   try {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    // Get recent event views as activity
+    // Get recent event views as activity - only views, no ticket clicks
     const recentViews = await prisma.eventView.findMany({
       where: {
         createdAt: {
@@ -172,53 +179,17 @@ statsRouter.get("/activity", async (_req, res) => {
       take: 10
     });
 
-    // Get recent ticket clicks as activity
-    const recentClicks = await prisma.eventTicketClick.findMany({
-      where: {
-        createdAt: {
-          gte: oneDayAgo
-        }
-      },
-      select: {
-        event: {
-          select: {
-            title: true,
-            city: true
-          }
-        },
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 10
-    });
-
-    // Combine and format activities
-    const activities = [
-      ...recentViews.map(v => ({
-        type: 'view',
-        eventTitle: v.event.title,
-        city: v.event.city,
-        timestamp: v.createdAt
-      })),
-      ...recentClicks.map(c => ({
-        type: 'click',
-        eventTitle: c.event.title,
-        city: c.event.city,
-        timestamp: c.createdAt
-      }))
-    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-     .slice(0, 10);
+    // Format activities - only views, no ticket clicks
+    const activities = recentViews.map(v => ({
+      type: 'view' as const,
+      eventTitle: v.event.title,
+      city: v.event.city,
+      timestamp: v.createdAt,
+      timeAgo: getTimeAgo(new Date(v.createdAt))
+    }));
 
     res.json({
-      activities: activities.map(a => ({
-        type: a.type,
-        eventTitle: a.eventTitle,
-        city: a.city,
-        timestamp: a.timestamp,
-        timeAgo: getTimeAgo(new Date(a.timestamp))
-      }))
+      activities
     });
   } catch (error) {
     console.error('Error fetching activity:', error);

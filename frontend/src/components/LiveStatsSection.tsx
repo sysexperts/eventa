@@ -97,7 +97,7 @@ function LiveStatsSection() {
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {[
               { value: stats.activeEvents.toString(), label: "Live Events", change: `+${stats.recentActivity.views24h}`, icon: "🎪" },
-              { value: formatNumber(stats.totalUsers), label: "Aktive Nutzer", change: `+${stats.recentActivity.ticketClicks24h}`, icon: "👥" },
+              { value: formatNumber(stats.totalUsers), label: "Aktive Nutzer", change: "Online", icon: "👥" },
               { value: stats.avgArtistRating ? `${stats.avgArtistRating}★` : "N/A", label: "Ø Bewertung", change: `${stats.totalArtists} Künstler`, icon: "⭐" },
               { value: stats.citiesCount.toString(), label: "Städte", change: "Deutschlandweit", icon: "🏙️" },
             ].map((stat, i) => (
@@ -123,7 +123,7 @@ function LiveStatsSection() {
                 <div key={i} className="flex items-center gap-3 text-xs animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
                   <div className="h-1.5 w-1.5 rounded-full bg-accent-400" />
                   <span className="text-surface-300">
-                    {activity.type === 'view' ? 'Jemand sieht' : 'Jemand klickt auf'}
+                    Jemand sieht
                   </span>
                   <span className="text-surface-500">{activity.eventTitle}</span>
                   <span className="text-surface-400">· {activity.city}</span>
