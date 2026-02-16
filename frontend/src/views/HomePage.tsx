@@ -677,23 +677,6 @@ export function HomePage() {
         </section>
       )}
 
-      {/* ═══════════════════ WEEKEND EVENTS ═══════════════════ */}
-      {weekendEvents.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="Dieses Wochenende"
-            subtitle="Plane dein Wochenende mit diesen Events"
-            linkTo="/events"
-            linkLabel="Mehr Events"
-          />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {weekendEvents.map((ev) => (
-              <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* ═══════════════════ CITIES / STÄDTE ═══════════════════ */}
       {cities.length > 0 && (() => {
         const cityImages: Record<string, string> = {
