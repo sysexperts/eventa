@@ -9,12 +9,8 @@ function LiveStatsSection() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [statsData, activityData] = await Promise.all([
-          api.stats.getPublic(),
-          api.stats.getActivity()
-        ]);
+        const statsData = await api.stats.getPublic();
         setStats(statsData);
-        setActivities(activityData.activities.slice(0, 4));
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -108,68 +104,6 @@ function LiveStatsSection() {
                 <div className="mt-1 text-[10px] font-semibold text-neon-green">{stat.change}</div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Live Activity Feed */}
-        <div className="mt-8">
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-xs font-medium text-surface-400 mb-3">
-              <div className="h-2 w-2 rounded-full bg-neon-green animate-pulse" />
-              Live-Aktivität
-            </div>
-            <div className="space-y-2">
-              {activities.map((activity, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-                  <div className="h-1.5 w-1.5 rounded-full bg-accent-400" />
-                  <span className="text-surface-300">
-                    Jemand sieht
-                  </span>
-                  <span className="text-surface-500">{activity.eventTitle}</span>
-                  <span className="text-surface-400">· {activity.city}</span>
-                  <span className="text-surface-600 ml-auto">{activity.timeAgo}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Next Events Countdown */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {countdown && stats.nextEvent && (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-sm font-medium text-white">Nächstes Event in</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-white tabular-nums">{countdown.hours}</span>
-                <span className="text-lg text-surface-400">:</span>
-                <span className="text-3xl font-bold text-white tabular-nums">{countdown.minutes}</span>
-                <span className="text-lg text-surface-400">:</span>
-                <span className="text-3xl font-bold text-white tabular-nums">{countdown.seconds}</span>
-              </div>
-              <div className="mt-2 text-xs text-surface-500">Stunden · Minuten · Sekunden</div>
-              <div className="mt-3">
-                <div className="text-sm font-medium text-white truncate">{stats.nextEvent.title}</div>
-                <div className="text-xs text-surface-500">{stats.nextEvent.city} · {new Date(stats.nextEvent.startsAt).toLocaleDateString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div>
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-              <span className="text-sm font-medium text-white">🔥 Trending Events</span>
-            </div>
-            <div className="space-y-2">
-              {stats.trendingEvents.slice(0, 3).map((event: any, i: number) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span className="text-xs text-surface-300 truncate max-w-[180px]">{event.title}</span>
-                  <span className="text-xs font-medium text-accent-400">{event.views} Views</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
