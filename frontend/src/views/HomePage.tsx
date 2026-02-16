@@ -677,26 +677,6 @@ export function HomePage() {
         </section>
       )}
 
-      {/* ═══════════════════ UPCOMING / BALD IN DEINER NÄHE ═══════════════════ */}
-      {upcoming.length > 0 && (
-        <section className="border-y border-white/[0.06] bg-white/[0.015]">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <SectionHeader title="Bald in deiner Nähe" subtitle="Die nächsten Veranstaltungen" linkTo="/events" linkLabel="Alle Events" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {upcoming.map((ev) => (
-                <div key={ev.id} className="relative">
-                  {/* Relative date badge */}
-                  <div className="absolute -left-1 top-3 z-10 rounded-r-full bg-accent-500/90 px-3 py-0.5 text-[10px] font-bold text-white shadow-lg shadow-accent-500/20">
-                    {formatRelativeDate(ev.startsAt)}
-                  </div>
-                  <EventCard ev={ev} size="compact" isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ═══════════════════ WEEKEND EVENTS ═══════════════════ */}
       {weekendEvents.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
