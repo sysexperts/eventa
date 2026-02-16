@@ -4,6 +4,7 @@ import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
 import { FavoriteButton } from "../ui/FavoriteButton";
 import { useAuth } from "../state/auth";
+import LiveStatsSection from "../components/LiveStatsSection";
 
 const CATEGORY_ICONS: Record<string, string> = {
   KONZERT: "🎵",
@@ -812,130 +813,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════ LIVE SOCIAL PROOF ═══════════════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-accent-500/[0.02] via-transparent to-neon-purple/[0.02]">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.01] to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Warum Local<span className="text-gradient">Events</span>?
-            </h2>
-            <p className="mt-3 text-sm text-surface-500">
-              Die moderne Plattform für lokale Veranstaltungen – entdeckt von Tausenden jeden Tag.
-            </p>
-          </div>
-
-          {/* Live Stats Bar */}
-          <div className="mt-10 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm">
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-              {[
-                { value: "2,847", label: "Live Events", change: "+12%", icon: "🎪" },
-                { value: "18.3K", label: "Aktive Nutzer", change: "+24%", icon: "👥" },
-                { value: "4.8★", label: "Bewertung", change: "2,341", icon: "⭐" },
-                { value: "127", label: "Städte", change: "+8", icon: "🏙️" },
-              ].map((stat, i) => (
-                <div key={stat.label} className="text-center">
-                  <div className="mb-2 text-2xl">{stat.icon}</div>
-                  <div className="text-2xl font-bold text-white tabular-nums">{stat.value}</div>
-                  <div className="mt-1 text-xs font-medium text-surface-400">{stat.label}</div>
-                  <div className="mt-1 text-[10px] font-semibold text-neon-green">{stat.change}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Live Activity Feed */}
-          <div className="mt-8">
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-xs font-medium text-surface-400 mb-3">
-                <div className="h-2 w-2 rounded-full bg-neon-green animate-pulse" />
-                Live-Aktivität
-              </div>
-              <div className="space-y-2">
-                {[
-                  { user: "Sarah K.", action: "hat Comedy Night in Stuttgart gebucht", time: "vor 2 Min" },
-                  { user: "Mike T.", action: "interessiert sich für Open Air Festival", time: "vor 5 Min" },
-                  { user: "Lisa M.", action: "hat Jazz Konzert favorisiert", time: "vor 8 Min" },
-                  { user: "Tom H.", action: "teilt Theater Event mit Freunden", time: "vor 12 Min" },
-                ].map((activity, i) => (
-                  <div key={i} className="flex items-center gap-3 text-xs animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="h-1.5 w-1.5 rounded-full bg-accent-400" />
-                    <span className="text-surface-300">{activity.user}</span>
-                    <span className="text-surface-500">{activity.action}</span>
-                    <span className="text-surface-600 ml-auto">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Next Events Countdown */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-sm font-medium text-white">Nächstes Event in</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-white tabular-nums">02</span>
-                <span className="text-lg text-surface-400">:</span>
-                <span className="text-3xl font-bold text-white tabular-nums">45</span>
-                <span className="text-lg text-surface-400">:</span>
-                <span className="text-3xl font-bold text-white tabular-nums">18</span>
-              </div>
-              <div className="mt-2 text-xs text-surface-500">Stunden · Minuten · Sekunden</div>
-              <div className="mt-3">
-                <div className="text-sm font-medium text-white truncate">Summer Open Air Festival</div>
-                <div className="text-xs text-surface-500">München · Heute 20:00</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-                <span className="text-sm font-medium text-white">🔥 Trending Events</span>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { title: "Comedy Night Stuttgart", interested: 24 },
-                  { title: "Jazz Festival Berlin", interested: 18 },
-                  { title: "Theater Hamburg", interested: 15 },
-                ].map((event, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-xs text-surface-300 truncate max-w-[180px]">{event.title}</span>
-                    <span className="text-xs font-medium text-accent-400">{event.interested} Leute</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* User Testimonials */}
-          <div className="mt-8">
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-white">Was unsere Nutzer sagen</h3>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                { name: "Anna R.", text: "Endlich eine übersichtliche Plattform für lokale Events!", rating: 5 },
-                { name: "Markus L.", text: "Super einfach, Events zu finden und zu teilen.", rating: 5 },
-                { name: "Julia W.", text: "Keine Registrierung nötig – das gefällt mir!", rating: 4 },
-              ].map((testimonial, i) => (
-                <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-1 mb-2">
-                    {[...Array(testimonial.rating)].map((_, j) => (
-                      <span key={j} className="text-xs">⭐</span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-surface-300 leading-relaxed">"{testimonial.text}"</p>
-                  <div className="mt-2 text-xs font-medium text-accent-400">{testimonial.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <LiveStatsSection />
 
       {/* ═══════════════════ FEATURES ═══════════════════ */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">

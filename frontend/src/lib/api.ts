@@ -545,6 +545,42 @@ export const api = {
     update: (commentId: string, text: string) => request<{ comment: EventComment }>(`/api/comments/${commentId}`, { method: "PUT", body: JSON.stringify({ text }) }),
     remove: (commentId: string) => request<void>(`/api/comments/${commentId}`, { method: "DELETE" }),
   },
+  stats: {
+    getPublic: () => request<{
+      activeEvents: number;
+      totalUsers: number;
+      avgArtistRating: number;
+      totalArtists: number;
+      citiesCount: number;
+      recentActivity: {
+        views24h: number;
+        ticketClicks24h: number;
+      };
+      trendingEvents: Array<{
+        id: string;
+        title: string;
+        city: string;
+        startsAt: string;
+        views: number;
+      }>;
+      nextEvent?: {
+        id: string;
+        title: string;
+        city: string;
+        startsAt: string;
+      };
+      lastUpdated: string;
+    }>("/api/stats/public"),
+    getActivity: () => request<{
+      activities: Array<{
+        type: 'view' | 'click';
+        eventTitle: string;
+        city: string;
+        timestamp: string;
+        timeAgo: string;
+      }>;
+    }>("/api/stats/activity"),
+  },
   attendance: {
     get: (eventId: string) => request<EventAttendance>(`/api/events/${eventId}/attendance`),
     toggle: (eventId: string) => request<{ attending: boolean; count: number }>(`/api/events/${eventId}/attend`, { method: "POST" }),
