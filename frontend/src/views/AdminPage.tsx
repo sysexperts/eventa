@@ -20,7 +20,7 @@ const ALL_CATEGORIES: EventCategory[] = [
 
 export function AdminPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"users" | "sources" | "communities" | "categories" | "settings">("users");
+  const [tab, setTab] = useState<"users" | "events" | "sources" | "communities" | "categories" | "settings">("users");
 
   // Site settings state
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
@@ -70,6 +70,13 @@ export function AdminPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
 
+  // Events (view counts) state
+  type AdminEvent = { id: string; title: string; category: string; city: string; startsAt: string; isFeatured: boolean; isPromoted: boolean; createdAt: string; organizer: { id: string; name: string } | null; _count: { views: number; ticketClicks: number } };
+  const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
+  const [adminEventsLoading, setAdminEventsLoading] = useState(false);
+  const [eventsSort, setEventsSort] = useState<"views" | "clicks" | "date">("views");
+  const [eventsSearch, setEventsSearch] = useState("");
+
   // Categories state
   const [categoryItems, setCategoryItems] = useState<CategoryItem[]>([]);
   const [categoriesItemsLoading, setCategoriesItemsLoading] = useState(false);
@@ -79,6 +86,7 @@ export function AdminPage() {
 
   const tabConfig: { id: typeof tab; label: string; emoji: string; count: number | null }[] = [
     { id: "users", label: "Benutzer", emoji: "👥", count: users.length },
+    { id: "events", label: "Events", emoji: "📊", count: adminEvents.length || null },
     { id: "communities", label: "Communities", emoji: "🌍", count: communities.length },
     { id: "categories", label: "Kategorien", emoji: "🏷️", count: categoryItems.length },
     { id: "sources", label: "Quellen", emoji: "🔗", count: sources.length },
@@ -94,6 +102,15 @@ export function AdminPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadAdminEvents() {
+    setAdminEventsLoading(true);
+    try {
+      const res = await api.admin.listEvents();
+      setAdminEvents(res.events);
+    } catch { setAdminEvents([]); }
+    finally { setAdminEventsLoading(false); }
   }
 
   async function loadSources() {
@@ -177,10 +194,8 @@ export function AdminPage() {
 
   useEffect(() => {
     loadUsers();
-    loadSources();
-    loadCommunities();
     loadSettings();
-    loadCategoryItems();
+    loadAdminEvents();
   }, []);
 
   if (!user?.isAdmin) {
@@ -400,6 +415,126 @@ export function AdminPage() {
           ))}
         </div>
       </div>
+
+      {/* ─── Events Tab ─── */}
+      {tab === "events" && (
+        <section className="space-y-4 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-white">Events & View-Counts</h2>
+              <p className="text-xs text-surface-400 mt-0.5">Alle Events sortiert nach Aufrufen. Klicks = Ticket-Link-Klicks.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Event suchen..."
+                value={eventsSearch}
+                onChange={(e) => setEventsSearch(e.target.value)}
+                className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-white placeholder-surface-500 outline-none focus:border-accent-500/40 w-44"
+              />
+              <select
+                value={eventsSort}
+                onChange={(e) => setEventsSort(e.target.value as "views" | "clicks" | "date")}
+                className="rounded-lg border border-white/[0.08] bg-surface-900 px-2 py-1.5 text-xs text-white outline-none focus:border-accent-500/40"
+              >
+                <option value="views">Nach Views</option>
+                <option value="clicks">Nach Klicks</option>
+                <option value="date">Nach Datum</option>
+              </select>
+              <button onClick={loadAdminEvents} className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-surface-300 hover:text-white transition-colors">
+                ↻ Neu laden
+              </button>
+            </div>
+          </div>
+
+          {adminEventsLoading ? (
+            <div className="py-12 text-center text-sm text-surface-500">Lade Events...</div>
+          ) : (
+            <>
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+                  <p className="text-[11px] uppercase tracking-wider text-surface-500">Events gesamt</p>
+                  <p className="mt-1 text-2xl font-bold text-white">{adminEvents.length}</p>
+                </div>
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+                  <p className="text-[11px] uppercase tracking-wider text-surface-500">Views gesamt</p>
+                  <p className="mt-1 text-2xl font-bold text-accent-400">{adminEvents.reduce((s, e) => s + e._count.views, 0).toLocaleString("de-DE")}</p>
+                </div>
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+                  <p className="text-[11px] uppercase tracking-wider text-surface-500">Ticket-Klicks</p>
+                  <p className="mt-1 text-2xl font-bold text-neon-green">{adminEvents.reduce((s, e) => s + e._count.ticketClicks, 0).toLocaleString("de-DE")}</p>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-2xl border border-white/[0.06]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">Event</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">Stadt</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">Datum</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">Veranstalter</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">
+                        <span className="text-accent-400">Views</span>
+                      </th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">
+                        <span className="text-neon-green">Klicks</span>
+                      </th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">Conv.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminEvents
+                      .filter((e) => !eventsSearch || e.title.toLowerCase().includes(eventsSearch.toLowerCase()) || e.city?.toLowerCase().includes(eventsSearch.toLowerCase()))
+                      .sort((a, b) => {
+                        if (eventsSort === "views") return b._count.views - a._count.views;
+                        if (eventsSort === "clicks") return b._count.ticketClicks - a._count.ticketClicks;
+                        return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+                      })
+                      .map((e, idx) => {
+                        const conv = e._count.views > 0 ? Math.round((e._count.ticketClicks / e._count.views) * 1000) / 10 : 0;
+                        return (
+                          <tr key={e.id} className={`border-b border-white/[0.04] transition-colors hover:bg-white/[0.03] ${idx % 2 === 0 ? "" : "bg-white/[0.01]"}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {e.isFeatured && <span className="rounded-full bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent-300">★</span>}
+                                <a href={`/events/${e.id}`} target="_blank" rel="noreferrer" className="max-w-[200px] truncate text-sm font-medium text-white hover:text-accent-300 transition-colors">
+                                  {e.title}
+                                </a>
+                              </div>
+                              <div className="mt-0.5 text-[11px] text-surface-500">{categoryLabel(e.category as any)}</div>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-surface-400">{e.city || "–"}</td>
+                            <td className="px-4 py-3 text-xs text-surface-400 whitespace-nowrap">
+                              {new Date(e.startsAt).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-surface-400">{e.organizer?.name || "–"}</td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="font-semibold text-accent-400">{e._count.views.toLocaleString("de-DE")}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="font-semibold text-neon-green">{e._count.ticketClicks.toLocaleString("de-DE")}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`text-xs font-medium ${conv >= 5 ? "text-neon-green" : conv >= 1 ? "text-yellow-400" : "text-surface-500"}`}>
+                                {conv}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+                {adminEvents.filter((e) => !eventsSearch || e.title.toLowerCase().includes(eventsSearch.toLowerCase()) || e.city?.toLowerCase().includes(eventsSearch.toLowerCase())).length === 0 && (
+                  <div className="py-10 text-center text-sm text-surface-500">Keine Events gefunden.</div>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {/* ─── Categories Tab ─── */}
       {tab === "categories" && (

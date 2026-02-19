@@ -543,3 +543,24 @@ adminRouter.delete("/communities/:id/members/:memberId", requireAuth, requireAdm
   await prisma.communityMember.delete({ where: { id: memberId } });
   res.status(204).send();
 });
+
+// ─── Admin: All events with view counts ──────────────────────────────────────
+
+adminRouter.get("/events", requireAuth, requireAdmin, async (_req, res) => {
+  const events = await prisma.event.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+      city: true,
+      startsAt: true,
+      isFeatured: true,
+      isPromoted: true,
+      createdAt: true,
+      organizer: { select: { id: true, name: true } },
+      _count: { select: { views: true, ticketClicks: true } },
+    },
+  });
+  res.json({ events });
+});

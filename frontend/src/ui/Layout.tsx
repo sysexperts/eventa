@@ -8,10 +8,10 @@ function NavItem({ to, label }: { to: string; label: string }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `relative text-[13px] font-medium tracking-wide uppercase transition-all duration-300 py-1 ${
+        `relative rounded-full px-4 py-1.5 text-[13px] font-medium tracking-wide transition-all duration-200 ${
           isActive
-            ? "text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-accent-400 after:to-neon-purple"
-            : "text-surface-400 hover:text-white after:absolute after:bottom-0 after:left-1/2 after:right-1/2 after:h-[2px] after:rounded-full after:bg-accent-500/60 after:transition-all after:duration-300 hover:after:left-0 hover:after:right-0"
+            ? "bg-white/10 text-white shadow-inner shadow-white/5 ring-1 ring-white/10"
+            : "text-surface-400 hover:text-white hover:bg-white/[0.06]"
         }`
       }
     >
@@ -35,6 +35,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
         </button>
         <nav className="flex flex-col gap-4">
           <NavLink to="/events" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Events</NavLink>
+          <NavLink to="/artists" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Künstler</NavLink>
           {user ? (
             <>
               <NavLink to="/favorites" onClick={onClose} className="text-base font-medium text-surface-300 hover:text-white transition-colors">Favoriten</NavLink>
@@ -81,26 +82,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface-950">
+    <div className="relative flex min-h-screen flex-col">
+      {/* ── Global ambient background ── */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-surface-950" aria-hidden="true">
+        <div className="absolute -left-[20vw] top-[5vh] h-[60vh] w-[60vw] rounded-full bg-accent-500/20 blur-[100px]" />
+        <div className="absolute -right-[15vw] top-[30vh] h-[50vh] w-[50vw] rounded-full bg-neon-purple/15 blur-[90px]" />
+        <div className="absolute left-[15vw] bottom-[0vh] h-[40vh] w-[40vw] rounded-full bg-neon-cyan/10 blur-[90px]" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-surface-950 to-transparent" />
+      </div>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-surface-950/60 backdrop-blur-2xl backdrop-saturate-150">
-        {/* Animated gradient border */}
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent-500/50 to-transparent animate-gradient-x" style={{ backgroundSize: "200% 100%" }} />
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-surface-950/75 backdrop-blur-3xl backdrop-saturate-200">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 text-sm font-black text-white shadow-lg shadow-accent-500/30 transition-all duration-300 group-hover:scale-110 group-hover:shadow-accent-500/50 group-hover:rotate-3">
-              <div className="absolute inset-0 rounded-xl bg-accent-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 text-sm font-black text-white shadow-md shadow-accent-500/40 transition-all duration-300 group-hover:scale-105 group-hover:shadow-accent-500/60">
               <span className="relative">L</span>
             </div>
-            <span className="text-lg font-bold tracking-tight text-white">
-              Local<span className="bg-gradient-to-r from-accent-300 to-accent-500 bg-clip-text text-transparent">Events</span>
+            <span className="text-[15px] font-bold tracking-tight text-white">
+              Local<span className="text-accent-400">Events</span>
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden items-center gap-7 lg:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             <NavItem to="/events" label="Events" />
+            <NavItem to="/artists" label="Künstler" />
             {user && <NavItem to="/favorites" label="Favoriten" />}
             {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/my-events" label="Meine Events" />}
             {user && (user.isAdmin || user.isPartner || user.website) && <NavItem to="/dashboard" label="Dashboard" />}
@@ -109,8 +115,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Right side */}
           <div className="flex items-center gap-3">
             {/* Get App Button - coming soon */}
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] px-4 py-2 text-xs font-semibold text-surface-600 cursor-default select-none">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium text-surface-500 cursor-default select-none">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
               App bald
             </span>
 
@@ -152,15 +158,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <>
-                  <button onClick={openLogin} className="px-3 py-2 text-sm font-medium text-surface-400 transition-all duration-200 hover:text-white">
+                  <button onClick={openLogin} className="rounded-full px-4 py-1.5 text-[13px] font-medium text-surface-400 transition-all duration-200 hover:text-white hover:bg-white/[0.06]">
                     Anmelden
                   </button>
                   <button
                     onClick={openRegister}
-                    className="relative rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all duration-300 hover:shadow-accent-500/40 hover:scale-[1.03] active:scale-[0.98] overflow-hidden group/btn"
+                    className="rounded-full bg-gradient-to-r from-accent-500 to-purple-600 px-4 py-1.5 text-[13px] font-semibold text-white shadow-md shadow-accent-500/30 transition-all duration-200 hover:from-accent-400 hover:to-purple-500 hover:shadow-accent-500/50 active:scale-[0.97]"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-accent-400 to-accent-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-                    <span className="relative">Registrieren</span>
+                    Registrieren
                   </button>
                 </>
               )}

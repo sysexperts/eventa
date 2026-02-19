@@ -9,6 +9,7 @@ import { MyEventsPage } from "../views/MyEventsPage";
 import { EventFormPage } from "../views/EventFormPage";
 import { AdminPage } from "../views/AdminPage";
 import { ArtistsAdminPage } from "../views/ArtistsAdminPage";
+import { ArtistsPage } from "../views/ArtistsPage";
 import { ArtistProfilePage } from "../views/ArtistProfilePage";
 import { CommunityPage } from "../views/CommunityPage";
 import { ProfilePage } from "../views/ProfilePage";
@@ -50,6 +51,7 @@ export function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/community/:slug" element={<CommunityPage />} />
+        <Route path="/artists" element={<ArtistsPage />} />
         <Route path="/artists/:slug" element={<ArtistProfilePage />} />
         <Route path="/login" element={<RedirectWithModal mode="login" />} />
         <Route path="/register" element={<RedirectWithModal mode="register" />} />

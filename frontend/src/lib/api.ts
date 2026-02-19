@@ -455,6 +455,8 @@ export const api = {
       }),
     searchUsers: (q = "", page = 1) =>
       request<{ users: (AdminUser & { _count: { events: number; communityMembers: number } })[]; total: number; page: number; pages: number }>(`/api/admin/users/search?q=${encodeURIComponent(q)}&page=${page}`),
+    listEvents: () =>
+      request<{ events: { id: string; title: string; category: string; city: string; startsAt: string; isFeatured: boolean; isPromoted: boolean; createdAt: string; organizer: { id: string; name: string } | null; _count: { views: number; ticketClicks: number } }[] }>("/api/admin/events"),
     listCommunities: () =>
       request<{ communities: Community[] }>("/api/admin/communities"),
     createCommunity: (data: { slug: string; name: string; description?: string; imageUrl?: string | null; bannerUrl?: string | null; country?: string | null; language?: string | null }) =>

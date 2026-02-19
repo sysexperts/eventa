@@ -373,6 +373,28 @@ eventsRouter.get("/me/list", requireAuth, async (req, res) => {
   res.json({ events });
 });
 
+// ─── View & Click Tracking ───────────────────────────────────────────────────
+
+eventsRouter.post("/:id/track-view", async (req, res) => {
+  const id = req.params.id;
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+  const ua = req.headers["user-agent"] || "";
+  try {
+    await prisma.eventView.create({ data: { eventId: id, ip, userAgent: ua } });
+  } catch { /* ignore – event may not exist */ }
+  res.json({ ok: true });
+});
+
+eventsRouter.post("/:id/track-ticket-click", async (req, res) => {
+  const id = req.params.id;
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+  const ua = req.headers["user-agent"] || "";
+  try {
+    await prisma.eventTicketClick.create({ data: { eventId: id, ip, userAgent: ua } });
+  } catch { /* ignore */ }
+  res.json({ ok: true });
+});
+
 eventsRouter.get("/:id", async (req, res) => {
   const id = req.params.id;
 

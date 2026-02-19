@@ -1,0 +1,17 @@
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&q=80', "flagCode" = 'tr' WHERE slug = 'turkish';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1558618047-f4e60cef3895?w=400&q=80', "flagCode" = 'sy' WHERE slug = 'syrian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1607427293702-036707e560d7?w=400&q=80', "flagCode" = 'pl' WHERE slug = 'polish';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=400&q=80', "flagCode" = 'ro' WHERE slug = 'romanian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80', "flagCode" = 'it' WHERE slug = 'italian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&q=80', "flagCode" = 'gr' WHERE slug = 'greek';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1601134467661-3d775b999c18?w=400&q=80', "flagCode" = 'bg' WHERE slug = 'bulgarian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?w=400&q=80', "flagCode" = 'ru' WHERE slug = 'russian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&q=80', "flagCode" = 'sa' WHERE slug = 'arabic';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1565711561500-49678a10a63f?w=400&q=80', "flagCode" = 'ir' WHERE slug = 'persian';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=400&q=80', "flagCode" = 'es' WHERE slug = 'spanish';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1555990538-1e15a2d6b7a3?w=400&q=80', "flagCode" = 'rs' WHERE slug = 'balkan';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&q=80', "flagCode" = 'br' WHERE slug = 'latin';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400&q=80', "flagCode" = 'ng' WHERE slug = 'african';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1570939274717-7eda259b50ed?w=400&q=80', "flagCode" = 'iq' WHERE slug = 'kurdish';
+UPDATE "Community" SET "bannerUrl" = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80', "flagCode" = 'eu' WHERE slug = 'international';
+SELECT slug, "bannerUrl", "flagCode" FROM "Community" WHERE "showOnHomepage" = true ORDER BY slug;
