@@ -13,6 +13,13 @@ import { ArtistProfilePage } from "../views/ArtistProfilePage";
 import { CommunityPage } from "../views/CommunityPage";
 import { ProfilePage } from "../views/ProfilePage";
 import { FavoritesPage } from "../views/FavoritesPage";
+import { AppPage } from "../views/AppPage";
+import { NotFoundPage } from "../views/NotFoundPage";
+import { ImpressumPage } from "../views/ImpressumPage";
+import { DatenschutzPage } from "../views/DatenschutzPage";
+import { AgbPage } from "../views/AgbPage";
+import { BarrierefreiheitPage } from "../views/BarrierefreiheitPage";
+import { KontaktPage } from "../views/KontaktPage";
 import { useAuth } from "../state/auth";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -110,7 +117,13 @@ export function App() {
             </RequireAuth>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/app" element={<AppPage />} />
+        <Route path="/impressum" element={<ImpressumPage />} />
+        <Route path="/datenschutz" element={<DatenschutzPage />} />
+        <Route path="/agb" element={<AgbPage />} />
+        <Route path="/barrierefreiheit" element={<BarrierefreiheitPage />} />
+        <Route path="/kontakt" element={<KontaktPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Layout>
   );

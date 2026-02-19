@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
 import { FavoriteButton } from "../ui/FavoriteButton";
+import { EventCardSkeletonGrid } from "../ui/EventCardSkeleton";
 import { useAuth } from "../state/auth";
 
 /* ═══════════════════ DATA ═══════════════════ */
@@ -524,9 +525,8 @@ export function EventsPage() {
 
       {/* ═══ RESULTS ═══ */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-surface-700 border-t-accent-500" />
-          <p className="mt-4 text-sm text-surface-500">Events werden geladen...</p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <EventCardSkeletonGrid count={6} />
         </div>
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

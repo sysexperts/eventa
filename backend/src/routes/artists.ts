@@ -19,13 +19,18 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
   },
 });
+const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const allowedImageExts = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowed.includes(ext));
+    if (allowedImageMimes.includes(file.mimetype) && allowedImageExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Ungültiger Dateityp. Nur JPG, PNG, WebP oder GIF erlaubt."));
+    }
   },
 });
 

@@ -4,6 +4,7 @@ import { api, type EventListItem } from "../lib/api";
 import { categoryLabel, formatDate } from "../lib/format";
 import { FavoriteButton } from "../ui/FavoriteButton";
 import { useAuth } from "../state/auth";
+import { EventCardSkeletonGrid } from "../ui/EventCardSkeleton";
 
 const CATEGORY_ICONS: Record<string, string> = {
   KONZERT: "🎵",
@@ -430,6 +431,115 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   );
 }
 
+function useCountUp(target: number, duration = 1800, start = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!start || target === 0) return;
+    let startTime: number | null = null;
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration, start]);
+  return count;
+}
+
+function StatCard({ icon, value, label, suffix = "", color }: { icon: React.ReactNode; value: number; label: string; suffix?: string; color: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const count = useCountUp(value, 1800, visible);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
+    }, { threshold: 0.3 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6 text-center transition-all duration-300 hover:border-white/[0.14] hover:bg-white/[0.05]">
+      <div className={`pointer-events-none absolute -top-10 left-1/2 h-32 w-32 -translate-x-1/2 rounded-full blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100 ${color}`} />
+      <div className="relative">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-2xl ring-1 ring-white/[0.08]">
+          {icon}
+        </div>
+        <div className="text-3xl font-extrabold tabular-nums text-white sm:text-4xl">
+          {count.toLocaleString("de-DE")}{suffix}
+        </div>
+        <div className="mt-1.5 text-sm font-medium text-surface-400">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function StatsSection() {
+  const [stats, setStats] = useState<{ activeEvents: number; totalUsers: number; citiesCount: number } | null>(null);
+
+  useEffect(() => {
+    api.stats.getPublic().then((s) => setStats(s)).catch(() => {});
+  }, []);
+
+  if (!stats) return null;
+
+  const items = [
+    { value: stats.activeEvents, label: "Aktive Veranstaltungen", sublabel: "jetzt buchbar", gradient: "from-accent-400 to-accent-300" },
+    { value: stats.totalUsers, label: "Registrierte Nutzer", sublabel: "aus der Community", gradient: "from-violet-400 to-purple-300" },
+    { value: stats.citiesCount, label: "Städte", sublabel: "deutschlandweit", gradient: "from-cyan-400 to-teal-300" },
+  ];
+
+  return (
+    <section className="relative">
+      {/* Top & bottom hairlines */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent-500/[0.03] via-transparent to-transparent" />
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col divide-y divide-white/[0.06] sm:flex-row sm:divide-x sm:divide-y-0">
+          {items.map((item) => (
+            <div key={item.label} className="group flex flex-1 flex-col items-center justify-center gap-1 py-10 sm:py-14 transition-colors duration-300 hover:bg-white/[0.015]">
+              <div className={`bg-gradient-to-r ${item.gradient} bg-clip-text text-5xl font-black tabular-nums text-transparent sm:text-6xl lg:text-7xl`}>
+                <AnimatedNumber value={item.value} />
+              </div>
+              <div className="mt-2 text-base font-semibold text-white/90">{item.label}</div>
+              <div className="flex items-center gap-1.5 text-xs text-surface-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-green opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-neon-green" />
+                </span>
+                {item.sublabel}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AnimatedNumber({ value }: { value: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState(false);
+  const count = useCountUp(value, 2000, visible);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
+    }, { threshold: 0.4 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return <span ref={ref}>{count.toLocaleString("de-DE")}</span>;
+}
+
 const FLAG_CDN = "https://hatscripts.github.io/circle-flags/flags";
 
 const CULTURES = [
@@ -613,13 +723,16 @@ export function HomePage() {
   const [weekendEvents, setWeekendEvents] = useState<EventListItem[]>([]);
   const [cities, setCities] = useState<{ name: string; count: number }[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(true);
 
   useEffect(() => {
-    api.events.featured().then((r) => setFeatured(r.events)).catch(() => {});
+    api.events.featured().then((r) => setFeatured(r.events)).catch(() => {}).finally(() => setLoadingFeatured(false));
 
     api.events.list({ from: new Date().toISOString() }).then((r) => {
       const sorted = r.events.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
       setUpcoming(sorted.slice(0, 8));
+      setLoadingUpcoming(false);
 
       // Extract unique cities with counts
       const cityMap: Record<string, number> = {};
@@ -666,16 +779,23 @@ export function HomePage() {
       <CategorySection />
 
       {/* ═══════════════════ FEATURED / HIGHLIGHTS ═══════════════════ */}
-      {featured.length > 0 && (
+      {(loadingFeatured || featured.length > 0) && (
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <SectionHeader title="Highlights" subtitle="Handverlesene Events für dich" linkTo="/events" linkLabel="Alle Events" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((ev) => (
-              <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
-            ))}
+            {loadingFeatured ? (
+              <EventCardSkeletonGrid count={6} />
+            ) : (
+              featured.map((ev) => (
+                <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
+              ))
+            )}
           </div>
         </section>
       )}
+
+      {/* ═══════════════════ STATS ═══════════════════ */}
+      <StatsSection />
 
       {/* ═══════════════════ CITIES / STÄDTE ═══════════════════ */}
       {cities.length > 0 && (() => {

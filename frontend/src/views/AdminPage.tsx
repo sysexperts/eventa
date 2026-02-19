@@ -77,6 +77,14 @@ export function AdminPage() {
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [newCategory, setNewCategory] = useState({ slug: "", name: "", eventCategory: "", imageUrl: "", iconUrl: "", icon: "", sortOrder: "0" });
 
+  const tabConfig: { id: typeof tab; label: string; emoji: string; count: number | null }[] = [
+    { id: "users", label: "Benutzer", emoji: "👥", count: users.length },
+    { id: "communities", label: "Communities", emoji: "🌍", count: communities.length },
+    { id: "categories", label: "Kategorien", emoji: "🏷️", count: categoryItems.length },
+    { id: "sources", label: "Quellen", emoji: "🔗", count: sources.length },
+    { id: "settings", label: "Einstellungen", emoji: "⚙️", count: null },
+  ];
+
   async function loadUsers() {
     try {
       const res = await api.admin.listUsers();
@@ -178,7 +186,7 @@ export function AdminPage() {
   if (!user?.isAdmin) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <div className="text-4xl">🔒</div>
+        <div className="text-4xl">­ƒöÆ</div>
         <p className="mt-4 text-surface-400">Kein Zugriff. Nur Administratoren koennen diese Seite sehen.</p>
       </div>
     );
@@ -299,75 +307,119 @@ export function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400">Admin</span>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Administration</h1>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      {/* Admin Overview */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-surface-900 p-6 sm:p-8">
+        <div className="pointer-events-none absolute -top-16 right-0 h-56 w-56 rounded-full bg-accent-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-400">
+              <span className="text-xs">⚙️</span> Admin Control
+            </span>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Administration</h1>
+              <p className="mt-1 text-sm text-surface-400">Zentrale Steuerung fuer Nutzer, Communities, Quellen und Kategorien.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <button
+              onClick={() => setTab("users")}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-surface-300 transition hover:border-white/20 hover:text-white"
+            >
+              Nutzer verwalten
+            </button>
+            <button
+              onClick={() => setTab("communities")}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-surface-300 transition hover:border-white/20 hover:text-white"
+            >
+              Communities
+            </button>
+            <button
+              onClick={() => setTab("sources")}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-surface-300 transition hover:border-white/20 hover:text-white"
+            >
+              Quellen
+            </button>
+            <button
+              onClick={() => setTab("settings")}
+              className="rounded-xl border border-accent-500/30 bg-accent-500/15 px-3 py-2 text-xs font-semibold text-accent-300 transition hover:bg-accent-500/25"
+            >
+              Hero Settings
+            </button>
+          </div>
+        </div>
+
+        <div className="relative mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-wider text-surface-500">Benutzer</p>
+            <p className="mt-1 text-2xl font-bold text-white">{users.length}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-wider text-surface-500">Communities</p>
+            <p className="mt-1 text-2xl font-bold text-white">{communities.length}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-wider text-surface-500">Kategorien</p>
+            <p className="mt-1 text-2xl font-bold text-white">{categoryItems.length}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-wider text-surface-500">Globale Quellen</p>
+            <p className="mt-1 text-2xl font-bold text-white">{sources.length}</p>
+          </div>
+        </div>
+      </section>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-white/[0.03] p-1">
-        <button
-          onClick={() => setTab("users")}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "users" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
-          }`}
-        >
-          Benutzer ({users.length})
-        </button>
-        <button
-          onClick={() => setTab("communities")}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "communities" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
-          }`}
-        >
-          Communities ({communities.length})
-        </button>
-        <button
-          onClick={() => setTab("categories")}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "categories" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
-          }`}
-        >
-          Kategorien ({categoryItems.length})
-        </button>
-        <button
-          onClick={() => setTab("sources")}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "sources" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
-          }`}
-        >
-          Globale Quellen ({sources.length})
-        </button>
-        <button
-          onClick={() => setTab("settings")}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "settings" ? "bg-white/[0.08] text-white" : "text-surface-400 hover:text-white"
-          }`}
-        >
-          Einstellungen
-        </button>
+      <div className="rounded-2xl border border-white/[0.08] bg-surface-950/70 p-2">
+        <div className="flex gap-1 overflow-x-auto">
+          {tabConfig.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                tab === t.id
+                  ? "bg-accent-500 text-white shadow-lg shadow-accent-500/20"
+                  : "text-surface-400 hover:bg-white/[0.05] hover:text-white"
+              }`}
+            >
+              <span>{t.emoji}</span>
+              <span className="hidden sm:inline">{t.label}</span>
+              {t.count !== null && (
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    tab === t.id ? "bg-white/20 text-white" : "bg-white/[0.06] text-surface-500"
+                  }`}
+                >
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ─── Categories Tab ─── */}
       {tab === "categories" && (
-        <div className="space-y-4">
+        <section className="space-y-4 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
           <p className="text-sm text-surface-400">
-            Kategorien verwalten. Du kannst Kategorien erstellen, Bilder zuweisen und festlegen welche auf der Startseite angezeigt werden.
+            Kategorien verwalten. Erstellen, Bilder zuweisen und festlegen welche auf der Startseite angezeigt werden.
           </p>
 
           {/* Create new category toggle */}
           {!showCreateCategory ? (
             <button
               onClick={() => setShowCreateCategory(true)}
-              className="w-full rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm font-medium text-accent-400 hover:bg-white/[0.04] hover:border-accent-500/30 transition-all"
+              className="w-full rounded-2xl border border-dashed border-accent-500/20 bg-accent-500/5 p-4 text-sm font-medium text-accent-400 hover:bg-accent-500/10 hover:border-accent-500/40 transition-all"
             >
-              + Neue Kategorie erstellen
+              🏷️ Neue Kategorie erstellen
             </button>
           ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 space-y-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-surface-900 p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <div className="text-base font-semibold text-white">Neue Kategorie erstellen</div>
+              <div className="text-base font-semibold text-white">🏷️ Neue Kategorie erstellen</div>
               <button onClick={() => setShowCreateCategory(false)} className="text-xs text-surface-500 hover:text-white transition-colors">Abbrechen</button>
             </div>
 
@@ -399,7 +451,7 @@ export function AdminPage() {
                 </div>
                 <div>
                   <Label>Icon (Emoji)</Label>
-                  <Input value={newCategory.icon} onChange={(e: any) => setNewCategory({ ...newCategory, icon: e.target.value })} placeholder="z.B. 🎵" />
+                  <Input value={newCategory.icon} onChange={(e: any) => setNewCategory({ ...newCategory, icon: e.target.value })} placeholder="z.B. ­ƒÄÁ" />
                 </div>
                 <div>
                   <Label>Sortierung</Label>
@@ -467,12 +519,12 @@ export function AdminPage() {
               {categoryItems.map((cat: CategoryItem) => {
                 const isExp = expandedCategory === cat.id;
                 return (
-                  <div key={cat.id} className={`rounded-2xl border overflow-hidden ${
-                    cat.isActive ? "border-white/[0.06] bg-white/[0.03]" : "border-white/[0.04] bg-white/[0.01] opacity-60"
+                  <div key={cat.id} className={`rounded-2xl border overflow-hidden transition-all ${
+                    cat.isActive ? "border-white/[0.08] bg-surface-900 hover:border-white/[0.12]" : "border-white/[0.04] bg-surface-900/50 opacity-60"
                   }`}>
                     <button
                       onClick={() => setExpandedCategory(isExp ? null : cat.id)}
-                      className="w-full text-left p-4 hover:bg-white/[0.02] transition-colors"
+                      className="w-full text-left px-5 py-4 hover:bg-white/[0.02] transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -494,22 +546,22 @@ export function AdminPage() {
                             <div className="mt-0.5 text-xs text-surface-500">Sortierung: {cat.sortOrder}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-surface-500">
-                          <span className={cat.showOnHomepage ? "text-accent-400" : "text-surface-600"}>
+                        <div className="flex items-center gap-3 text-xs shrink-0">
+                          <span className={`hidden sm:inline ${cat.showOnHomepage ? "text-accent-400" : "text-surface-600"}`}>
                             {cat.showOnHomepage ? "Startseite" : "Versteckt"}
                           </span>
-                          <span className={cat.isActive ? "text-neon-green" : "text-red-400"}>
+                          <span className={cat.isActive ? "text-emerald-400" : "text-red-400"}>
                             {cat.isActive ? "Aktiv" : "Inaktiv"}
                           </span>
-                          <span className="text-accent-400">{isExp ? "▲" : "▼"}</span>
+                          <span className="text-surface-600">{isExp ? "▲" : "▼"}</span>
                         </div>
                       </div>
                     </button>
 
                     {isExp && (
-                      <div className="border-t border-white/[0.06] p-4 space-y-4">
+                      <div className="border-t border-white/[0.06] bg-surface-950/40 px-5 py-4 space-y-4">
                         {/* Toggle active & showOnHomepage */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                           <div className="text-sm font-medium text-white">Status</div>
                           <div className="flex gap-2">
                             <button
@@ -674,12 +726,12 @@ export function AdminPage() {
               })}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* ─── Settings Tab ─── */}
+      {/* ÔöÇÔöÇÔöÇ Settings Tab ÔöÇÔöÇÔöÇ */}
       {tab === "settings" && (
-        <div className="space-y-6">
+        <section className="space-y-6 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
             <h2 className="text-lg font-bold text-white mb-1">Hero-Bereich</h2>
             <p className="text-xs text-surface-500 mb-6">Text und Darstellung des Hero-Bereichs auf der Startseite anpassen.</p>
@@ -775,19 +827,22 @@ export function AdminPage() {
               </div>
             )}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ─── Sources Tab ─── */}
       {tab === "sources" && (
-        <div className="space-y-4">
+        <section className="space-y-4 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
           <p className="text-sm text-surface-400">
-            Globale Quellen werden automatisch taeglich gescrapt. Events landen als Vorschlaege im Dashboard und werden automatisch kategorisiert.
+            Globale Quellen werden automatisch täglich gescrapt. Events landen als Vorschläge im Dashboard.
           </p>
 
           {/* Add new source */}
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
-            <div className="text-sm font-medium text-white">Neue Quelle hinzufuegen</div>
+          <div className="rounded-2xl border border-white/[0.08] bg-surface-900 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <span>🔗</span>
+              <div className="text-sm font-semibold text-white">Neue Quelle hinzufügen</div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>URL *</Label>
@@ -838,8 +893,8 @@ export function AdminPage() {
           ) : (
             <div className="space-y-2">
               {sources.map((s) => (
-                <div key={s.id} className={`rounded-2xl border p-4 ${
-                  s.isActive ? "border-white/[0.06] bg-white/[0.03]" : "border-white/[0.04] bg-white/[0.01] opacity-60"
+                <div key={s.id} className={`rounded-2xl border p-4 transition-all ${
+                  s.isActive ? "border-white/[0.08] bg-surface-900 hover:border-white/[0.12]" : "border-white/[0.04] bg-surface-900/50 opacity-60"
                 }`}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex-1 min-w-0">
@@ -897,28 +952,28 @@ export function AdminPage() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* ─── Communities Tab ─── */}
       {tab === "communities" && (
-        <div className="space-y-4">
+        <section className="space-y-4 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
           <p className="text-sm text-surface-400">
-            Communities verwalten. Du kannst neue Communities erstellen, Mitglieder verwalten und Rollen zuweisen.
+            Communities verwalten. Neue Communities erstellen, Mitglieder verwalten und Rollen zuweisen.
           </p>
 
           {/* Create new community toggle */}
           {!showCreateForm ? (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="w-full rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm font-medium text-accent-400 hover:bg-white/[0.04] hover:border-accent-500/30 transition-all"
+              className="w-full rounded-2xl border border-dashed border-accent-500/20 bg-accent-500/5 p-4 text-sm font-medium text-accent-400 hover:bg-accent-500/10 hover:border-accent-500/40 transition-all"
             >
-              + Neue Community erstellen
+              🌍 Neue Community erstellen
             </button>
           ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 space-y-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-surface-900 p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <div className="text-base font-semibold text-white">Neue Community erstellen</div>
+              <div className="text-base font-semibold text-white">🌍 Neue Community erstellen</div>
               <button onClick={() => setShowCreateForm(false)} className="text-xs text-surface-500 hover:text-white transition-colors">Abbrechen</button>
             </div>
 
@@ -1068,9 +1123,9 @@ export function AdminPage() {
                 <div>
                   <Label>Sichtbarkeit</Label>
                   <select value={newCommunity.visibility} onChange={(e: any) => setNewCommunity((p: any) => ({ ...p, visibility: e.target.value }))} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-accent-500 focus:outline-none">
-                    <option value="PUBLIC">Oeffentlich – Jeder kann beitreten</option>
-                    <option value="PRIVATE">Privat – Nur mit Einladung</option>
-                    <option value="HIDDEN">Versteckt – Nicht in Suche sichtbar</option>
+                    <option value="PUBLIC">Oeffentlich ÔÇô Jeder kann beitreten</option>
+                    <option value="PRIVATE">Privat ÔÇô Nur mit Einladung</option>
+                    <option value="HIDDEN">Versteckt ÔÇô Nicht in Suche sichtbar</option>
                   </select>
                 </div>
                 <div>
@@ -1135,18 +1190,22 @@ export function AdminPage() {
               {communities.map((c) => {
                 const isExp = expandedCommunity === c.id;
                 return (
-                  <div key={c.id} className={`rounded-2xl border overflow-hidden ${
-                    c.isActive !== false ? "border-white/[0.06] bg-white/[0.03]" : "border-white/[0.04] bg-white/[0.01] opacity-60"
+                  <div key={c.id} className={`rounded-2xl border overflow-hidden transition-all ${
+                    c.isActive !== false ? "border-white/[0.08] bg-surface-900 hover:border-white/[0.12]" : "border-white/[0.04] bg-surface-900/50 opacity-60"
                   }`}>
                     <button
                       onClick={() => {
                         if (isExp) { setExpandedCommunity(null); }
                         else { setExpandedCommunity(c.id); loadCommunityMembers(c.id); }
                       }}
-                      className="w-full text-left p-4 hover:bg-white/[0.02] transition-colors"
+                      className="w-full text-left px-5 py-4 hover:bg-white/[0.02] transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-500/10 text-sm font-bold text-accent-400">
+                            {c.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-white">{c.name}</span>
                             <span className="text-xs text-surface-500">/{c.slug}</span>
@@ -1155,19 +1214,20 @@ export function AdminPage() {
                             )}
                           </div>
                           {c.description && <div className="mt-0.5 text-xs text-surface-500 line-clamp-1">{c.description}</div>}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-surface-500">
-                          <span>{c._count?.members ?? 0} Mitglieder</span>
-                          <span>{c._count?.events ?? 0} Events</span>
-                          <span className="text-accent-400">{isExp ? "▲" : "▼"}</span>
+                        <div className="flex items-center gap-3 text-xs text-surface-500 shrink-0">
+                          <span className="hidden sm:inline"><span className="text-surface-600">Mitglieder</span> <span className="font-medium text-surface-300">{c._count?.members ?? 0}</span></span>
+                          <span className="hidden sm:inline"><span className="text-surface-600">Events</span> <span className="font-medium text-surface-300">{c._count?.events ?? 0}</span></span>
+                          <span className="text-surface-600">{isExp ? "▲" : "▼"}</span>
                         </div>
                       </div>
                     </button>
 
                     {isExp && (
-                      <div className="border-t border-white/[0.06] p-4 space-y-4">
+                      <div className="border-t border-white/[0.06] bg-surface-950/40 px-5 py-4 space-y-4">
                         {/* Toggle active */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                           <div className="text-sm font-medium text-white">Status</div>
                           <div className="flex gap-2">
                             <button
@@ -1214,7 +1274,7 @@ export function AdminPage() {
                                 : "bg-surface-700/50 text-surface-400"
                             }`}
                           >
-                            {c.showOnHomepage ? "✓ Auf Startseite angezeigt" : "Nicht auf Startseite"}
+                            {c.showOnHomepage ? "Ô£ô Auf Startseite angezeigt" : "Nicht auf Startseite"}
                           </button>
                         </div>
 
@@ -1345,9 +1405,9 @@ export function AdminPage() {
                               ))}
                               {searchPages > 1 && (
                                 <div className="flex items-center justify-center gap-2 pt-2">
-                                  <button disabled={searchPage <= 1} onClick={() => searchUsers(userSearch, searchPage - 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">← Zurueck</button>
+                                  <button disabled={searchPage <= 1} onClick={() => searchUsers(userSearch, searchPage - 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">ÔåÉ Zurueck</button>
                                   <span className="text-xs text-surface-500">{searchPage}/{searchPages} ({searchTotal} Treffer)</span>
-                                  <button disabled={searchPage >= searchPages} onClick={() => searchUsers(userSearch, searchPage + 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">Weiter →</button>
+                                  <button disabled={searchPage >= searchPages} onClick={() => searchUsers(userSearch, searchPage + 1)} className="text-xs text-surface-400 hover:text-white disabled:opacity-30">Weiter ÔåÆ</button>
                                 </div>
                               )}
                             </div>
@@ -1386,7 +1446,7 @@ export function AdminPage() {
                                 onClick={() => setRoleAssign({ userId: "", userName: "", role: "MEMBER" })}
                                 className="text-xs text-surface-500 hover:text-white"
                               >
-                                ✕
+                                Ô£ò
                               </button>
                             </div>
                           )}
@@ -1460,66 +1520,71 @@ export function AdminPage() {
               })}
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* ─── Users Tab ─── */}
-      {tab === "users" && (<>
-      <p className="text-sm text-surface-400">
-        Alle registrierten Benutzer. Du kannst Partner-Rechte vergeben und ueberwachte URLs fuer Kunden hinterlegen.
-      </p>
+      {tab === "users" && (<section className="space-y-4 rounded-3xl border border-white/[0.08] bg-surface-900/70 p-5 sm:p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-surface-400">Alle registrierten Benutzer. Partner-Rechte vergeben und URLs hinterlegen.</p>
+        <span className="text-xs text-surface-500">{users.length} Benutzer</span>
+      </div>
 
       {loading ? (
         <div className="py-12 text-center text-sm text-surface-500">Lade Benutzer...</div>
       ) : users.length === 0 ? (
         <div className="py-12 text-center text-sm text-surface-500">Keine Benutzer gefunden.</div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {users.map((u) => {
             const isExpanded = expandedUser === u.id;
             return (
-              <div key={u.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+              <div key={u.id} className="rounded-2xl border border-white/[0.06] bg-surface-900 overflow-hidden transition-all hover:border-white/[0.10]">
                 {/* User Header */}
                 <button
                   onClick={() => setExpandedUser(isExpanded ? null : u.id)}
-                  className="w-full text-left p-4 hover:bg-white/[0.02] transition-colors"
+                  className="w-full text-left px-5 py-4 hover:bg-white/[0.02] transition-colors"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-white">{u.name}</span>
-                        {u.isAdmin && (
-                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-red-400">Admin</span>
-                        )}
-                        {u.isPartner && (
-                          <span className="rounded-full bg-neon-green/20 px-2 py-0.5 text-[9px] font-bold uppercase text-neon-green">Partner</span>
-                        )}
-                        {!u.isPartner && !u.isAdmin && (
-                          <span className="rounded-full bg-surface-700/50 px-2 py-0.5 text-[9px] font-bold uppercase text-surface-400">Standard</span>
-                        )}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-sm font-bold text-accent-400">
+                        {u.name?.charAt(0).toUpperCase()}
                       </div>
-                      <div className="mt-0.5 text-xs text-surface-500">{u.email}</div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white">{u.name}</span>
+                          {u.isAdmin && (
+                            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-red-400">Admin</span>
+                          )}
+                          {u.isPartner && (
+                            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-400">Partner</span>
+                          )}
+                          {!u.isPartner && !u.isAdmin && (
+                            <span className="rounded-full bg-surface-700/50 px-2 py-0.5 text-[9px] font-bold uppercase text-surface-500">Standard</span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 text-xs text-surface-500 truncate">{u.email}</div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-surface-500 shrink-0">
-                      <span>{u._count.events} Events</span>
-                      <span>{u._count.scrapedEvents} Scraped</span>
-                      <span>{u.monitoredUrls.length} URLs</span>
-                      {u.isPartner && (
-                        <span className="text-amber-400">{u.promotionTokens} Tokens</span>
-                      )}
-                      <span className="text-accent-400">{isExpanded ? "▲" : "▼"}</span>
+                    <div className="flex items-center gap-3 text-xs shrink-0">
+                      <div className="hidden sm:flex items-center gap-3 text-surface-500">
+                        <span><span className="text-surface-600">Events</span> <span className="font-medium text-surface-300">{u._count.events}</span></span>
+                        <span><span className="text-surface-600">URLs</span> <span className="font-medium text-surface-300">{u.monitoredUrls.length}</span></span>
+                        {u.isPartner && <span className="font-medium text-amber-400">{u.promotionTokens} Tokens</span>}
+                      </div>
+                      <span className="text-surface-600">{isExpanded ? "▲" : "▼"}</span>
                     </div>
                   </div>
                 </button>
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="border-t border-white/[0.06] p-4 space-y-4">
+                  <div className="border-t border-white/[0.06] bg-surface-950/40 px-5 py-4 space-y-5">
                     {/* Partner Toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                       <div>
                         <div className="text-sm font-medium text-white">Partner-Status</div>
-                        <div className="text-xs text-surface-500">Partner koennen die automatische Indexierung nutzen.</div>
+                        <div className="text-xs text-surface-500">Partner können die automatische Indexierung nutzen.</div>
                       </div>
                       <button
                         onClick={() => togglePartner(u.id, u.isPartner)}
@@ -1656,7 +1721,7 @@ export function AdminPage() {
           })}
         </div>
       )}
-    </>)}
+    </section>)}
     </div>
   );
 }

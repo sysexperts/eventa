@@ -21,14 +21,18 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
   },
 });
+const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const allowedImageExts = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error("Nur JPG, PNG, WebP oder GIF erlaubt."));
+    if (allowedImageMimes.includes(file.mimetype) && allowedImageExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Ungültiger Dateityp. Nur JPG, PNG, WebP oder GIF erlaubt."));
+    }
   },
 });
 
@@ -39,14 +43,18 @@ const videoStorage = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
   },
 });
+const allowedVideoMimes = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+const allowedVideoExts = [".mp4", ".webm", ".ogg", ".mov"];
 const videoUpload = multer({
   storage: videoStorage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = [".mp4", ".webm", ".ogg", ".mov"];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error("Nur MP4, WebM, OGG oder MOV erlaubt."));
+    if (allowedVideoMimes.includes(file.mimetype) && allowedVideoExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Ungültiger Dateityp. Nur MP4, WebM, OGG oder MOV erlaubt."));
+    }
   },
 });
 

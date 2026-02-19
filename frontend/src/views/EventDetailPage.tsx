@@ -93,6 +93,104 @@ function InfoCard({ icon, label, children }: { icon: React.ReactNode; label: str
   );
 }
 
+const REPORT_REASONS = [
+  "Falsche oder irreführende Informationen",
+  "Veranstaltung findet nicht statt",
+  "Spam oder Werbung",
+  "Anstößiger oder illegaler Inhalt",
+  "Urheberrechtsverletzung",
+  "Sonstiges",
+];
+
+function ReportButton({ eventTitle, eventId }: { eventTitle: string; eventId: string }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [sent, setSent] = useState(false);
+
+  function handleSend() {
+    const subject = encodeURIComponent(`Event melden: ${eventTitle}`);
+    const body = encodeURIComponent(
+      `Event-ID: ${eventId}\nEvent: ${eventTitle}\n\nGrund: ${reason}\n\nDetails:\n${details}\n\nURL: ${window.location.href}`
+    );
+    window.location.href = `mailto:melden@localevents.de?subject=${subject}&body=${body}`;
+    setSent(true);
+    setTimeout(() => { setOpen(false); setSent(false); setReason(""); setDetails(""); }, 2000);
+  }
+
+  return (
+    <>
+      <div className="border-t border-white/[0.06] pt-6">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 text-xs text-surface-500 hover:text-red-400 transition-colors"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Event melden
+        </button>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-surface-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-white">Event melden</h3>
+            <p className="mt-1 text-xs text-surface-400">
+              Bitte wähle einen Grund und beschreibe das Problem kurz.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {REPORT_REASONS.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setReason(r)}
+                  className={`w-full rounded-xl border px-4 py-2.5 text-left text-xs transition-all ${
+                    reason === r
+                      ? "border-red-500/40 bg-red-500/10 text-red-300"
+                      : "border-white/[0.06] bg-white/[0.03] text-surface-300 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Weitere Details (optional)..."
+              rows={3}
+              className="mt-3 w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs text-white placeholder-surface-500 outline-none focus:border-red-500/30 focus:ring-1 focus:ring-red-500/20"
+            />
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={handleSend}
+                disabled={!reason || sent}
+                className="flex-1 rounded-xl bg-red-500/80 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {sent ? "Gesendet ✓" : "Melden"}
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-surface-300 transition hover:bg-white/10"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
@@ -363,6 +461,9 @@ export function EventDetailPage() {
               <h2 className="mb-4 text-lg font-bold text-white">Event teilen</h2>
               <ShareButtons title={event.title} url={shareUrl} />
             </div>
+
+            {/* Report */}
+            <ReportButton eventTitle={event.title} eventId={event.id} />
 
             {/* Comments */}
             <div className="border-t border-white/[0.06] pt-8">

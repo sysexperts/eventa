@@ -19,6 +19,7 @@ import { commentsRouter } from "./routes/comments.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { statsRouter } from "./routes/stats.js";
 import { startCronjob } from "./services/cronjob.js";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 
@@ -32,9 +33,25 @@ app.use(
   })
 );
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(morgan("dev"));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Zu viele Versuche. Bitte warte 15 Minuten." }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Zu viele Anfragen. Bitte warte kurz." }
+});
 
 // Serve uploaded files
 const __filename = fileURLToPath(import.meta.url);
@@ -45,17 +62,17 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use("/api/auth", authRouter);
-app.use("/api/events", eventsRouter);
-app.use("/api/me", meRouter);
-app.use("/api/scrape", scrapeRouter);
-app.use("/api/monitored-urls", monitoredUrlsRouter);
-app.use("/api/admin", adminRouter);
-app.use("/api/artists", artistsRouter);
-app.use("/api/communities", communitiesRouter);
-app.use("/api/categories", categoriesRouter);
-app.use("/api/stats", statsRouter);
-app.use("/api", commentsRouter);
+app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/events", apiLimiter, eventsRouter);
+app.use("/api/me", apiLimiter, meRouter);
+app.use("/api/scrape", apiLimiter, scrapeRouter);
+app.use("/api/monitored-urls", apiLimiter, monitoredUrlsRouter);
+app.use("/api/admin", apiLimiter, adminRouter);
+app.use("/api/artists", apiLimiter, artistsRouter);
+app.use("/api/communities", apiLimiter, communitiesRouter);
+app.use("/api/categories", apiLimiter, categoriesRouter);
+app.use("/api/stats", apiLimiter, statsRouter);
+app.use("/api", apiLimiter, commentsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

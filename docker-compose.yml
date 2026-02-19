@@ -15,6 +15,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    restart: always
 
   backend:
     build:
@@ -22,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: local-events-backend
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 4000
       DB_HOST: db
       DB_PORT: 5432
@@ -30,8 +31,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-local_events}
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-local_events}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
-      COOKIE_SECURE: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECURE: "true"
       CORS_ORIGIN: http://localhost:5173
     depends_on:
       db:
@@ -40,6 +41,7 @@ services:
       - "4000:4000"
     volumes:
       - uploads_data:/app/uploads
+    restart: always
 
   frontend:
     build:
@@ -50,6 +52,26 @@ services:
       - backend
     ports:
       - "5173:5173"
+    restart: always
+
+  backup:
+    image: postgres:16-alpine
+    container_name: local-events-backup
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql &&
+        echo \"Backup OK: $$(date)\" &&
+        find /backups -name '*.sql' -mtime +7 -delete;
+        sleep 86400;
+      done"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
 
 volumes:
   db_data:
