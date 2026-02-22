@@ -220,7 +220,11 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
   onSearch: (e: React.FormEvent) => void;
   navigate: (path: string) => void;
 }) {
-  const heroImages = useMemo(() => featured.filter((e) => e.imageUrl).slice(0, 6), [featured]);
+  const heroImages = useMemo(() => {
+    const withImages = featured.filter((e) => e.imageUrl).slice(0, 6);
+    // Fallback: If no events with images, use all featured events with fallback background
+    return withImages.length > 0 ? withImages : featured.slice(0, 6);
+  }, [featured]);
   const count = heroImages.length;
   const [activeIdx, setActiveIdx] = useState(0);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -272,10 +276,43 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
           if (!a.isFeatured && b.isFeatured) return 1;
           return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
         });
-        setCityEvts(sorted.slice(0, 8));
+        
+        // Fallback: If less than 3 events in city, fetch from all cities
+        if (sorted.length < 3) {
+          api.events.list({ from: new Date().toISOString() })
+            .then((allEvents) => {
+              const allSorted = allEvents.events.sort((a, b) => {
+                if (a.isPromoted && !b.isPromoted) return -1;
+                if (!a.isPromoted && b.isPromoted) return 1;
+                if (a.isFeatured && !b.isFeatured) return -1;
+                if (!a.isFeatured && b.isFeatured) return 1;
+                return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+              });
+              setCityEvts(allSorted.slice(0, 8));
+            })
+            .catch(() => setCityEvts([]))
+            .finally(() => setCityEvtsLoading(false));
+        } else {
+          setCityEvts(sorted.slice(0, 8));
+          setCityEvtsLoading(false);
+        }
       })
-      .catch(() => setCityEvts([]))
-      .finally(() => setCityEvtsLoading(false));
+      .catch(() => {
+        // If city fetch fails, try all events
+        api.events.list({ from: new Date().toISOString() })
+          .then((allEvents) => {
+            const allSorted = allEvents.events.sort((a, b) => {
+              if (a.isPromoted && !b.isPromoted) return -1;
+              if (!a.isPromoted && b.isPromoted) return 1;
+              if (a.isFeatured && !b.isFeatured) return -1;
+              if (!a.isFeatured && b.isFeatured) return 1;
+              return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+            });
+            setCityEvts(allSorted.slice(0, 8));
+          })
+          .catch(() => setCityEvts([]))
+          .finally(() => setCityEvtsLoading(false));
+      });
   }, [heroCity]);
 
   function selectHeroCity(c: string) {
@@ -1322,17 +1359,38 @@ export function HomePage() {
   const [featured, setFeatured] = useState<EventListItem[]>([]);
   const [upcoming, setUpcoming] = useState<EventListItem[]>([]);
   const [weekendEvents, setWeekendEvents] = useState<EventListItem[]>([]);
+  const [highlights, setHighlights] = useState<EventListItem[]>([]);
   const [cities, setCities] = useState<{ name: string; count: number }[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingUpcoming, setLoadingUpcoming] = useState(true);
+  const [loadingHighlights, setLoadingHighlights] = useState(true);
   useEffect(() => {
-    api.events.featured().then((r) => setFeatured(r.events)).catch(() => {}).finally(() => setLoadingFeatured(false));
+    api.events.featured().then((r) => {
+      // Fallback: If less than 3 featured events, use upcoming events for hero slider
+      if (r.events.length < 3) {
+        api.events.list({ from: new Date().toISOString() }).then((allEvents) => {
+          const sorted = allEvents.events.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+          setFeatured(sorted.slice(0, 6));
+        }).catch(() => {});
+      } else {
+        setFeatured(r.events);
+      }
+    }).catch(() => {}).finally(() => setLoadingFeatured(false));
 
     api.events.list({ from: new Date().toISOString() }).then((r) => {
       const sorted = r.events.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
       setUpcoming(sorted.slice(0, 8));
       setLoadingUpcoming(false);
+
+      // Highlights: Promoted events first, then by date (max 12)
+      const highlightsSorted = r.events.sort((a, b) => {
+        if (a.isPromoted && !b.isPromoted) return -1;
+        if (!a.isPromoted && b.isPromoted) return 1;
+        return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+      });
+      setHighlights(highlightsSorted.slice(0, 12));
+      setLoadingHighlights(false);
 
       // Extract unique cities with counts
       const cityMap: Record<string, number> = {};
@@ -1376,15 +1434,15 @@ export function HomePage() {
       {/* ═══════════════════ COMMUNITIES ═══════════════════ */}
       <CommunityCarousel />
 
-      {/* ═══════════════════ FEATURED / HIGHLIGHTS ═══════════════════ */}
-      {(loadingFeatured || featured.length > 0) && (
+      {/* ═══════════════════ HIGHLIGHTS (Promoted + Date) ═══════════════════ */}
+      {(loadingHighlights || highlights.length > 0) && (
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <SectionHeader title="Highlights" subtitle="Handverlesene Events für dich" linkTo="/events" linkLabel="Alle Events" />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {loadingFeatured ? (
-              <EventCardSkeletonGrid count={6} />
+          <SectionHeader title="Highlights" subtitle="Promoted Events und kommende Highlights" linkTo="/events" linkLabel="Alle Events" />
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {loadingHighlights ? (
+              <EventCardSkeletonGrid count={12} />
             ) : (
-              featured.map((ev) => (
+              highlights.map((ev) => (
                 <EventCard key={ev.id} ev={ev} isFavorited={favIds.has(ev.id)} onToggle={handleFavToggle} />
               ))
             )}

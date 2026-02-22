@@ -481,8 +481,12 @@ export function DashboardPage() {
     try {
       const res = await api.events.myStats();
       setStats(res);
-    } catch { setStats(null); }
-    finally { setStatsLoading(false); }
+    } catch (err) {
+      console.error("Failed to load stats:", err);
+      setStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
   }
 
   async function loadAll() {

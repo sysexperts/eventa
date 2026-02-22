@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, Artist } from "../lib/api";
 import { Input, Textarea, Button, Label } from "../ui/components";
 
 export function ArtistsAdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -24,6 +25,15 @@ export function ArtistsAdminPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      setShowCreate(true);
+      setEditingId(null);
+      setForm(emptyForm);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   function set(key: string, value: string) {
     setForm((prev: any) => ({ ...prev, [key]: value }));

@@ -1,11 +1,58 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { useAuth } from "../state/auth";
+
+const GENRES = [
+  "Alle",
+  "Rock",
+  "Pop",
+  "Hip-Hop",
+  "Electronic",
+  "Jazz",
+  "Classical",
+  "Metal",
+  "Indie",
+  "Folk",
+  "R&B",
+  "Country",
+  "Reggae",
+  "Blues",
+  "Punk",
+  "Soul",
+];
+
+const FLAG_CDN = "https://hatscripts.github.io/circle-flags/flags";
+
+const CULTURES = [
+  { slug: "turkish",       name: "Türkisch",      flag: "tr", img: "https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "croatian",      name: "Kroatisch",      flag: "hr", img: "https://images.pexels.com/photos/1660995/pexels-photo-1660995.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "polish",        name: "Polnisch",       flag: "pl", img: "https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "romanian",      name: "Rumänisch",      flag: "ro", img: "https://images.pexels.com/photos/3622608/pexels-photo-3622608.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "italian",       name: "Italienisch",    flag: "it", img: "https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "greek",         name: "Griechisch",     flag: "gr", img: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "bulgarian",     name: "Bulgarisch",     flag: "bg", img: "https://images.pexels.com/photos/4388164/pexels-photo-4388164.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "russian",       name: "Russisch",       flag: "ru", img: "https://images.pexels.com/photos/753339/pexels-photo-753339.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "persian",       name: "Persisch",       flag: "ir", img: "https://images.pexels.com/photos/2846217/pexels-photo-2846217.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "spanish",       name: "Spanisch",       flag: "es", img: "https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "balkan",        name: "Balkan",         flag: "rs", img: "https://images.pexels.com/photos/3881104/pexels-photo-3881104.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "latin",         name: "Lateinamerika",  flag: "br", img: "https://images.pexels.com/photos/2868242/pexels-photo-2868242.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "african",       name: "Afrikanisch",    flag: "ng", img: "https://images.pexels.com/photos/259447/pexels-photo-259447.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "kurdish",       name: "Kurdisch",       flag: "iq", img: "https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=400" },
+  { slug: "international", name: "International",  flag: "eu", img: "https://images.pexels.com/photos/1098460/pexels-photo-1098460.jpeg?auto=compress&cs=tinysrgb&w=400" },
+];
 
 export function ArtistsPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("Alle");
+  const [selectedCommunity, setSelectedCommunity] = useState("");
+  
+  const fallback = CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, flagUrl: "", img: c.img }));
+  const [communities, setCommunities] = useState(fallback);
 
   useEffect(() => {
     api.artists.list()
@@ -14,18 +61,67 @@ export function ArtistsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = artists.filter((a) =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    (a.genre || "").toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    api.communities.list()
+      .then((r) => {
+        if (!r.communities?.length) return;
+        const homepageCommunities = r.communities.filter((c: any) => c.showOnHomepage);
+        if (!homepageCommunities.length) return;
+        const cultureMap = new Map(CULTURES.map((c) => [c.slug, c]));
+        const cultureOrder = new Map(CULTURES.map((c, i) => [c.slug, i]));
+        const mapped = homepageCommunities.map((db: any) => {
+          const fallbackC = cultureMap.get(db.slug);
+          return {
+            slug: db.slug,
+            name: db.name || fallbackC?.name || db.slug,
+            flag: (db.flagCode || db.country || fallbackC?.flag || "eu").toLowerCase(),
+            flagUrl: db.flagUrl || "",
+            img: fallbackC?.img || db.bannerUrl || db.imageUrl || "",
+          };
+        });
+        mapped.sort((a: any, b: any) => (cultureOrder.get(a.slug) ?? 99) - (cultureOrder.get(b.slug) ?? 99));
+        setCommunities(mapped);
+      })
+      .catch(() => {});
+  }, []);
+
+  const filtered = artists.filter((a) => {
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.genre || "").toLowerCase().includes(search.toLowerCase());
+    const matchesGenre = selectedGenre === "Alle" || 
+      (a.genre || "").toLowerCase().includes(selectedGenre.toLowerCase());
+    const matchesCommunity = !selectedCommunity || 
+      (a.tags || []).some((tag: string) => tag.toLowerCase() === selectedCommunity.toLowerCase());
+    return matchesSearch && matchesGenre && matchesCommunity;
+  });
+
+  const canCreateArtist = user && (user.isPartner || user.isAdmin);
 
   return (
     <div className="min-h-screen">
       {/* Header */}
       <div className="border-b border-white/[0.06] bg-surface-950/50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-white sm:text-4xl">Künstler</h1>
-          <p className="mt-2 text-surface-400">Entdecke Künstler und ihre kommenden Events</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-white sm:text-4xl">Künstler</h1>
+                <span className="rounded-full bg-accent-500/20 px-3 py-1 text-sm font-semibold text-accent-400">
+                  {artists.length.toLocaleString("de-DE")}
+                </span>
+              </div>
+              <p className="mt-2 text-surface-400">Entdecke Künstler und ihre kommenden Events</p>
+            </div>
+            {canCreateArtist && (
+              <button
+                onClick={() => navigate("/admin/artists?create=true")}
+                className="flex items-center gap-2 rounded-xl bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-400"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Künstler erstellen
+              </button>
+            )}
+          </div>
           {/* Search */}
           <div className="mt-6 max-w-md">
             <div className="relative">
@@ -38,6 +134,121 @@ export function ArtistsPage() {
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-white placeholder-surface-500 outline-none focus:border-accent-500/50 focus:ring-1 focus:ring-accent-500/30"
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      <section className="py-14">
+        {/* Header */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex items-end justify-between">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-400">Communities</p>
+              <h2 className="text-2xl font-bold text-white sm:text-3xl">Nach Community filtern</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Community avatars */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center gap-8 sm:gap-12">
+            {/* Alle Button */}
+            <button
+              onClick={() => setSelectedCommunity("")}
+              className="group flex flex-col items-center gap-3"
+            >
+              <div className="relative">
+                <div className={`absolute -inset-[3px] rounded-full transition-opacity duration-300 ${
+                  !selectedCommunity ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+                  style={{ background: "linear-gradient(135deg, #3366ff, #a855f7, #ec4899)" }} />
+                <div className={`absolute -inset-[3px] rounded-full ring-2 ring-white/10 transition-opacity duration-300 ${
+                  !selectedCommunity ? "opacity-0" : "group-hover:opacity-0"
+                }`} />
+                <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent-500/20 to-purple-600/20 sm:h-24 sm:w-24">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-400">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20"/>
+                  </svg>
+                </div>
+              </div>
+              <span className={`text-xs font-medium transition-colors duration-200 sm:text-sm ${
+                !selectedCommunity ? "text-white" : "text-surface-400 group-hover:text-white"
+              }`}>
+                Alle
+              </span>
+            </button>
+            
+            {communities.slice(0, 7).map((c) => (
+              <button
+                key={c.slug}
+                onClick={() => setSelectedCommunity(c.slug)}
+                className="group flex flex-col items-center gap-3"
+              >
+                {/* Circle */}
+                <div className="relative">
+                  {/* Animated gradient ring on hover or selected */}
+                  <div className={`absolute -inset-[3px] rounded-full transition-opacity duration-300 ${
+                    selectedCommunity === c.slug ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}
+                    style={{ background: "linear-gradient(135deg, #3366ff, #a855f7, #ec4899)" }} />
+                  {/* Default subtle ring */}
+                  <div className={`absolute -inset-[3px] rounded-full ring-2 ring-white/10 transition-opacity duration-300 ${
+                    selectedCommunity === c.slug ? "opacity-0" : "group-hover:opacity-0"
+                  }`} />
+                  {/* Image */}
+                  <div className="relative h-20 w-20 overflow-hidden rounded-full sm:h-24 sm:w-24">
+                    <img
+                      src={c.img}
+                      alt={c.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/25 transition-opacity duration-300 group-hover:opacity-0" />
+                  </div>
+                  {/* Flag */}
+                  <div className="absolute -bottom-1 -right-1 h-7 w-7 overflow-hidden rounded-full ring-[2.5px] ring-[rgb(9,9,11)]">
+                    <img
+                      src={c.flagUrl || `${FLAG_CDN}/${c.flag.toLowerCase()}.svg`}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+                {/* Name */}
+                <span className={`text-xs font-medium transition-colors duration-200 sm:text-sm ${
+                  selectedCommunity === c.slug ? "text-white" : "text-surface-400 group-hover:text-white"
+                }`}>
+                  {c.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Genre Filter - Modern Chips */}
+      <div className="border-b border-white/[0.06] bg-surface-950/20 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent-400">Genre</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {GENRES.map((genre) => (
+              <button
+                key={genre}
+                onClick={() => setSelectedGenre(genre)}
+                className={`group relative overflow-hidden rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  selectedGenre === genre
+                    ? "bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/25"
+                    : "bg-white/[0.05] text-surface-300 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {selectedGenre === genre && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent-400/20 to-purple-400/20 animate-pulse" />
+                )}
+                <span className="relative">{genre}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>

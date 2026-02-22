@@ -373,28 +373,6 @@ eventsRouter.get("/me/list", requireAuth, async (req, res) => {
   res.json({ events });
 });
 
-// ─── View & Click Tracking ───────────────────────────────────────────────────
-
-eventsRouter.post("/:id/track-view", async (req, res) => {
-  const id = req.params.id;
-  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
-  const ua = req.headers["user-agent"] || "";
-  try {
-    await prisma.eventView.create({ data: { eventId: id, ip, userAgent: ua } });
-  } catch { /* ignore – event may not exist */ }
-  res.json({ ok: true });
-});
-
-eventsRouter.post("/:id/track-ticket-click", async (req, res) => {
-  const id = req.params.id;
-  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
-  const ua = req.headers["user-agent"] || "";
-  try {
-    await prisma.eventTicketClick.create({ data: { eventId: id, ip, userAgent: ua } });
-  } catch { /* ignore */ }
-  res.json({ ok: true });
-});
-
 eventsRouter.get("/:id", async (req, res) => {
   const id = req.params.id;
 
@@ -576,9 +554,15 @@ eventsRouter.delete("/:id", requireAuth, async (req, res) => {
 
 eventsRouter.post("/:id/track-view", async (req, res) => {
   const id = req.params.id;
+  console.log("[TRACK-VIEW] Event ID:", id);
   const exists = await prisma.event.findUnique({ where: { id }, select: { id: true } });
-  if (!exists) return res.status(404).json({ error: "Not found" });
-  await prisma.eventView.create({ data: { eventId: id } });
+  if (!exists) {
+    console.log("[TRACK-VIEW] Event not found:", id);
+    return res.status(404).json({ error: "Not found" });
+  }
+  console.log("[TRACK-VIEW] Creating view for event:", id);
+  const view = await prisma.eventView.create({ data: { eventId: id } });
+  console.log("[TRACK-VIEW] View created:", view.id);
   res.json({ ok: true });
 });
 

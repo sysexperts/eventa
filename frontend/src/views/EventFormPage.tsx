@@ -4,6 +4,7 @@ import { api, Artist } from "../lib/api";
 import { useAuth } from "../state/auth";
 import { Input, Textarea, Button, Label } from "../ui/components";
 import { ArtistSelect } from "../ui/ArtistSelect";
+import { CitySelect } from "../ui/CitySelect";
 
 const CATEGORIES = [
   "KONZERT", "FESTIVAL", "MUSICAL", "OPER", "KABARETT", "OPEN_MIC", "DJ_EVENT",
@@ -265,7 +266,7 @@ export function EventFormPage({ mode }: Props) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label>Stadt *</Label>
-                <Input required value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Berlin" />
+                <CitySelect required value={form.city} onChange={(val) => set("city", val)} placeholder="Stadt auswählen" />
               </div>
               <div>
                 <Label>Land *</Label>

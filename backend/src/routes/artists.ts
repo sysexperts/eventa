@@ -358,3 +358,175 @@ artistsRouter.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
   await prisma.artist.delete({ where: { id } });
   res.status(204).send();
 });
+
+// ─── Admin: Search Spotify artists (preview only) ────────────────────────────
+
+const spotifySearchSchema = z.object({
+  query: z.string().min(1).max(200),
+  limit: z.number().int().min(1).max(200).optional(),
+});
+
+artistsRouter.post("/search-spotify", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = spotifySearchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const { query, limit = 200 } = parsed.data;
+
+  try {
+    console.log("[Spotify Search] Starting search for:", query);
+    
+    // Get Spotify access token
+    const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+    const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+
+    console.log("[Spotify Search] Credentials check:", { 
+      hasClientId: !!SPOTIFY_CLIENT_ID, 
+      hasSecret: !!SPOTIFY_CLIENT_SECRET 
+    });
+
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      console.error("[Spotify Search] Missing credentials!");
+      return res.status(500).json({ error: "Spotify API credentials not configured" });
+    }
+
+    const credentials = `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`;
+    const base64Credentials = Buffer.from(credentials).toString("base64");
+    
+    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${base64Credentials}`,
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    if (!tokenResponse.ok) {
+      return res.status(500).json({ error: "Failed to authenticate with Spotify" });
+    }
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    // Search for artists with pagination (Spotify max 50 per request)
+    const allArtists: any[] = [];
+    const maxPerRequest = 50;
+    const totalRequests = Math.ceil(Math.min(limit, 200) / maxPerRequest);
+
+    for (let i = 0; i < totalRequests; i++) {
+      const offset = i * maxPerRequest;
+      const currentLimit = Math.min(maxPerRequest, limit - offset);
+      
+      const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=${currentLimit}&offset=${offset}`;
+      const searchResponse = await fetch(searchUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!searchResponse.ok) {
+        console.error(`[Spotify Search] Request ${i + 1} failed`);
+        break;
+      }
+
+      const searchData = await searchResponse.json();
+      const artists = searchData.artists?.items || [];
+      
+      if (artists.length === 0) break; // No more results
+      
+      allArtists.push(...artists);
+    }
+
+    const artists = allArtists;
+
+    // Get all existing artist names from database
+    const existingArtists = await prisma.artist.findMany({
+      select: { name: true },
+    });
+    const existingNames = new Set(existingArtists.map(a => a.name.toLowerCase()));
+
+    // Format results and filter out already imported artists
+    const results = artists
+      .filter((artist: any) => !existingNames.has(artist.name.toLowerCase()))
+      .map((artist: any) => ({
+        spotifyId: artist.id,
+        name: artist.name,
+        imageUrl: artist.images?.[0]?.url || null,
+        genres: artist.genres || [],
+        followers: artist.followers?.total || 0,
+        popularity: artist.popularity || 0,
+        spotifyUrl: artist.external_urls?.spotify || null,
+      }));
+
+    res.json({ artists: results, total: results.length });
+  } catch (error: any) {
+    console.error("Spotify search error:", error);
+    res.status(500).json({ error: "Search failed" });
+  }
+});
+
+// ─── Admin: Bulk import artists ──────────────────────────────────────────────
+
+const bulkImportSchema = z.object({
+  artists: z.array(createArtistSchema).min(1).max(500),
+});
+
+artistsRouter.post("/bulk-import", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = bulkImportSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const results = {
+    created: 0,
+    skipped: 0,
+    errors: [] as { name: string; error: string }[],
+  };
+
+  for (const artistData of parsed.data.artists) {
+    try {
+      // Generate unique slug
+      let slug = slugify(artistData.name);
+      const existing = await prisma.artist.findUnique({ where: { slug } });
+      
+      if (existing) {
+        // Skip if artist already exists
+        results.skipped++;
+        continue;
+      }
+
+      await prisma.artist.create({
+        data: {
+          name: artistData.name,
+          slug,
+          bio: artistData.bio || "",
+          imageUrl: artistData.imageUrl || null,
+          headerImageUrl: artistData.headerImageUrl || null,
+          genre: artistData.genre || "",
+          hometown: artistData.hometown || "",
+          tags: artistData.tags || [],
+          website: artistData.website || null,
+          instagram: artistData.instagram || null,
+          spotify: artistData.spotify || null,
+          youtube: artistData.youtube || null,
+          tiktok: artistData.tiktok || null,
+          facebook: artistData.facebook || null,
+          soundcloud: artistData.soundcloud || null,
+          bandcamp: artistData.bandcamp || null,
+          pressQuote: artistData.pressQuote || "",
+        },
+      });
+
+      results.created++;
+    } catch (error: any) {
+      results.errors.push({
+        name: artistData.name,
+        error: error.message || "Unknown error",
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    created: results.created,
+    skipped: results.skipped,
+    errors: results.errors,
+    total: parsed.data.artists.length,
+  });
+});
