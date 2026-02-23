@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../state/auth";
@@ -50,6 +50,8 @@ export function ArtistsPage() {
   const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("Alle");
   const [selectedCommunity, setSelectedCommunity] = useState("");
+  const [displayLimit, setDisplayLimit] = useState(50);
+  const observerTarget = useRef<HTMLDivElement>(null);
   
   const fallback = CULTURES.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag, flagUrl: "", img: c.img }));
   const [communities, setCommunities] = useState(fallback);
@@ -95,22 +97,53 @@ export function ArtistsPage() {
     return matchesSearch && matchesGenre && matchesCommunity;
   });
 
+  const displayed = filtered.slice(0, displayLimit);
+  const hasMore = filtered.length > displayLimit;
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loading) {
+      setDisplayLimit(prev => prev + 50);
+    }
+  }, [hasMore, loading]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [loadMore]);
+
   const canCreateArtist = user && (user.isPartner || user.isAdmin);
 
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-white/[0.06] bg-surface-950/50 py-12">
+      <div className="border-b border-white/[0.06] bg-surface-950/50 py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-white sm:text-4xl">Künstler</h1>
+                <h1 className="text-2xl font-bold text-white sm:text-3xl">Künstler</h1>
                 <span className="rounded-full bg-accent-500/20 px-3 py-1 text-sm font-semibold text-accent-400">
                   {artists.length.toLocaleString("de-DE")}
                 </span>
               </div>
-              <p className="mt-2 text-surface-400">Entdecke Künstler und ihre kommenden Events</p>
+              <p className="mt-1 text-sm text-surface-400">Entdecke Künstler und ihre kommenden Events</p>
             </div>
             {canCreateArtist && (
               <button
@@ -122,36 +155,36 @@ export function ArtistsPage() {
               </button>
             )}
           </div>
-          {/* Search */}
-          <div className="mt-6 max-w-md">
-            <div className="relative">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          {/* Search - Compact */}
+          <div className="mt-4">
+            <div className="relative max-w-md">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <input
                 type="text"
-                placeholder="Name oder Genre suchen…"
+                placeholder="Künstler suchen..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-white placeholder-surface-500 outline-none focus:border-accent-500/50 focus:ring-1 focus:ring-accent-500/30"
+                className="w-full rounded-lg border border-white/[0.08] bg-surface-900/60 py-2 pl-10 pr-3 text-sm text-white placeholder-surface-400 outline-none transition-all focus:border-accent-500/40"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <section className="py-14">
+      <section className="py-6">
         {/* Header */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-end justify-between">
+          <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-400">Communities</p>
-              <h2 className="text-2xl font-bold text-white sm:text-3xl">Nach Community filtern</h2>
+              <h2 className="text-xl font-bold text-white sm:text-2xl">Nach Community filtern</h2>
             </div>
           </div>
         </div>
 
         {/* Community avatars */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center gap-8 sm:gap-12">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
             {/* Alle Button */}
             <button
               onClick={() => setSelectedCommunity("")}
@@ -165,8 +198,8 @@ export function ArtistsPage() {
                 <div className={`absolute -inset-[3px] rounded-full ring-2 ring-white/10 transition-opacity duration-300 ${
                   !selectedCommunity ? "opacity-0" : "group-hover:opacity-0"
                 }`} />
-                <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent-500/20 to-purple-600/20 sm:h-24 sm:w-24">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-400">
+                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent-500/20 to-purple-600/20 sm:h-20 sm:w-20">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-400">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M2 12h20"/>
                   </svg>
@@ -197,7 +230,7 @@ export function ArtistsPage() {
                     selectedCommunity === c.slug ? "opacity-0" : "group-hover:opacity-0"
                   }`} />
                   {/* Image */}
-                  <div className="relative h-20 w-20 overflow-hidden rounded-full sm:h-24 sm:w-24">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full sm:h-20 sm:w-20">
                     <img
                       src={c.img}
                       alt={c.name}
@@ -215,7 +248,7 @@ export function ArtistsPage() {
                   </div>
                 </div>
                 {/* Name */}
-                <span className={`text-xs font-medium transition-colors duration-200 sm:text-sm ${
+                <span className={`community-name text-xs font-medium transition-colors duration-200 sm:text-sm ${
                   selectedCommunity === c.slug ? "text-white" : "text-surface-400 group-hover:text-white"
                 }`}>
                   {c.name}
@@ -226,27 +259,21 @@ export function ArtistsPage() {
         </div>
       </section>
 
-      {/* Genre Filter - Modern Chips */}
-      <div className="border-b border-white/[0.06] bg-surface-950/20 py-8">
+      {/* Genre Pills - Compact */}
+      <div className="border-b border-white/[0.06] bg-surface-950/20 py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-accent-400">Genre</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             {GENRES.map((genre) => (
               <button
                 key={genre}
                 onClick={() => setSelectedGenre(genre)}
-                className={`group relative overflow-hidden rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                   selectedGenre === genre
-                    ? "bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/25"
-                    : "bg-white/[0.05] text-surface-300 hover:bg-white/[0.08] hover:text-white"
+                    ? "bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/30"
+                    : "bg-surface-800/60 text-surface-300 hover:bg-surface-800 hover:text-white"
                 }`}
               >
-                {selectedGenre === genre && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-accent-400/20 to-purple-400/20 animate-pulse" />
-                )}
-                <span className="relative">{genre}</span>
+                {genre}
               </button>
             ))}
           </div>
@@ -254,7 +281,7 @@ export function ArtistsPage() {
       </div>
 
       {/* Grid */}
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {loading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -270,8 +297,9 @@ export function ArtistsPage() {
             {search ? `Keine Künstler für „${search}" gefunden.` : "Noch keine Künstler vorhanden."}
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {filtered.map((artist) => (
+            {displayed.map((artist) => (
               <Link
                 key={artist.id}
                 to={`/artists/${artist.slug}`}
@@ -310,6 +338,16 @@ export function ArtistsPage() {
               </Link>
             ))}
           </div>
+          {hasMore && (
+            <div ref={observerTarget} className="mt-8 flex justify-center py-8">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 animate-bounce rounded-full bg-accent-500" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-accent-500" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-accent-500" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

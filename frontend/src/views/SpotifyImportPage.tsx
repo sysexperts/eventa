@@ -17,6 +17,24 @@ export function SpotifyImportPage() {
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(50);
   const [communityTag, setCommunityTag] = useState("");
+
+  const COMMUNITIES = [
+    { value: "turkish", label: "Türkisch" },
+    { value: "croatian", label: "Kroatisch" },
+    { value: "polish", label: "Polnisch" },
+    { value: "romanian", label: "Rumänisch" },
+    { value: "italian", label: "Italienisch" },
+    { value: "greek", label: "Griechisch" },
+    { value: "bulgarian", label: "Bulgarisch" },
+    { value: "russian", label: "Russisch" },
+    { value: "persian", label: "Persisch" },
+    { value: "spanish", label: "Spanisch" },
+    { value: "balkan", label: "Balkan" },
+    { value: "latin", label: "Lateinamerika" },
+    { value: "african", label: "Afrikanisch" },
+    { value: "kurdish", label: "Kurdisch" },
+    { value: "international", label: "International" },
+  ];
   const [searching, setSearching] = useState(false);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<SpotifyArtist[]>([]);
@@ -27,6 +45,10 @@ export function SpotifyImportPage() {
   async function handleSearch() {
     if (!query.trim()) {
       setError("Bitte Suchanfrage eingeben");
+      return;
+    }
+    if (!communityTag) {
+      setError("Bitte Community auswählen");
       return;
     }
 
@@ -82,6 +104,10 @@ export function SpotifyImportPage() {
   async function handleImport() {
     if (selected.size === 0) {
       setError("Bitte mindestens einen Künstler auswählen");
+      return;
+    }
+    if (!communityTag) {
+      setError("Bitte Community auswählen");
       return;
     }
 
@@ -182,15 +208,22 @@ export function SpotifyImportPage() {
 
           <div className="mt-4">
             <label className="mb-2 block text-sm font-medium text-white">
-              Community Tag (optional)
+              Community <span className="text-red-400">*</span>
             </label>
-            <Input
+            <select
               value={communityTag}
               onChange={(e) => setCommunityTag(e.target.value)}
-              placeholder="z.B. turkish, greek, arabic..."
-            />
+              className="w-full rounded-xl border border-white/[0.08] bg-surface-800 px-4 py-2.5 text-white outline-none transition-all focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+            >
+              <option value="">-- Bitte Community auswählen --</option>
+              {COMMUNITIES.map((community) => (
+                <option key={community.value} value={community.value}>
+                  {community.label}
+                </option>
+              ))}
+            </select>
             <p className="mt-1 text-xs text-surface-500">
-              Wird automatisch zu den Tags hinzugefügt, damit die Filter funktionieren
+              Pflichtfeld: Wird automatisch zu den Tags hinzugefügt, damit die Filter funktionieren
             </p>
           </div>
 
