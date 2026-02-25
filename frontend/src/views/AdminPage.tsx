@@ -196,6 +196,8 @@ export function AdminPage() {
     loadUsers();
     loadSettings();
     loadAdminEvents();
+    loadCommunities();
+    loadCategoryItems();
   }, []);
 
   if (!user?.isAdmin) {

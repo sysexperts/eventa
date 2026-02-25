@@ -94,13 +94,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-surface-950/75 backdrop-blur-3xl backdrop-saturate-200">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 text-sm font-black text-white shadow-md shadow-accent-500/40 transition-all duration-300 group-hover:scale-105 group-hover:shadow-accent-500/60">
-              <span className="relative">L</span>
+          <Link to="/" className="flex items-center gap-2.5 group transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              <span className="bg-gradient-to-r from-[#00e5ff] to-[#0066ff] bg-clip-text text-transparent">o</span>
+              <span className="text-white">mekan</span>
             </div>
-            <span className="text-[15px] font-bold tracking-tight text-white">
-              Local<span className="text-accent-400">Events</span>
-            </span>
           </Link>
 
           {/* Desktop Nav */}

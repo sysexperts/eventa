@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Artist" ADD COLUMN "hometown" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN "youtube" TEXT,
+ADD COLUMN "tiktok" TEXT,
+ADD COLUMN "facebook" TEXT,
+ADD COLUMN "soundcloud" TEXT,
+ADD COLUMN "bandcamp" TEXT,
+ADD COLUMN "pressQuote" TEXT NOT NULL DEFAULT '';

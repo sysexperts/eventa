@@ -1,0 +1,14 @@
+<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="oGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- O as text with gradient, same height as other letters -->
+  <text x="0" y="35" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="32" font-weight="700" letter-spacing="-1" fill="url(#oGradient)">O</text>
+  
+  <!-- Rest of text -->
+  <text x="28" y="35" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="32" font-weight="700" letter-spacing="-1" fill="#ffffff">mekan</text>
+</svg>

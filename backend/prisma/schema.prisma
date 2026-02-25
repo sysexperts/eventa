@@ -104,6 +104,7 @@ model User {
   companyName  String?
   isPartner       Boolean  @default(false)
   isAdmin         Boolean  @default(false)
+  isBanned        Boolean  @default(false)
   promotionTokens Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -140,6 +141,7 @@ model Event {
   heroFocusY       Int       @default(50)
   isPromoted       Boolean   @default(false)
   promotedAt       DateTime?
+  isBlocked        Boolean   @default(false)
 
   organizerId String
   organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)

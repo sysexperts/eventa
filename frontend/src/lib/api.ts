@@ -483,6 +483,22 @@ export const api = {
       request<{ category: CategoryItem }>(`/api/admin/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     deleteCategory: (id: string) =>
       request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
+    // User Management
+    banUser: (id: string, isBanned: boolean) =>
+      request<{ user: any; message: string }>(`/api/admin/users/${id}/ban`, {
+        method: "PATCH",
+        body: JSON.stringify({ isBanned }),
+      }),
+    deleteUser: (id: string) =>
+      request<{ message: string; deletedEventsCount: number }>(`/api/admin/users/${id}`, { method: "DELETE" }),
+    // Event Management
+    blockEvent: (id: string, isBlocked: boolean) =>
+      request<{ event: any; message: string }>(`/api/admin/events/${id}/block`, {
+        method: "PATCH",
+        body: JSON.stringify({ isBlocked }),
+      }),
+    deleteEvent: (id: string) =>
+      request<{ message: string }>(`/api/admin/events/${id}`, { method: "DELETE" }),
   },
   artists: {
     list: () => request<{ artists: Artist[] }>("/api/artists"),

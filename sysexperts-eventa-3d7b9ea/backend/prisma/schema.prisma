@@ -1,0 +1,481 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventCategory {
+  // Musik & Bühne
+  KONZERT
+  FESTIVAL
+  MUSICAL
+  OPER
+  KABARETT
+  OPEN_MIC
+  DJ_EVENT
+
+  // Bühne & Darstellung
+  THEATER
+  COMEDY
+  TANZ
+  ZAUBERSHOW
+
+  // Kunst & Kultur
+  AUSSTELLUNG
+  LESUNG
+  FILM
+  FOTOGRAFIE
+  MUSEUM
+
+  // Märkte & Messen
+  FLOHMARKT
+  WOCHENMARKT
+  WEIHNACHTSMARKT
+  MESSE
+  FOOD_FESTIVAL
+
+  // Sport & Fitness
+  SPORT
+  LAUF
+  TURNIER
+  YOGA
+  WANDERUNG
+
+  // Familie & Kinder
+  KINDERTHEATER
+  FAMILIENTAG
+  KINDER_WORKSHOP
+
+  // Essen & Trinken
+  WEINPROBE
+  CRAFT_BEER
+  KOCHKURS
+  FOOD_TRUCK
+  KULINARISCHE_TOUR
+
+  // Bildung & Networking
+  WORKSHOP
+  SEMINAR
+  KONFERENZ
+  NETWORKING
+  VORTRAG
+
+  // Nachtleben & Party
+  CLUBNACHT
+  KARAOKE
+  PARTY
+
+  // Saisonales & Feste
+  KARNEVAL
+  OKTOBERFEST
+  SILVESTER
+  STADTFEST
+  STRASSENFEST
+
+  // Sonstiges
+  SONSTIGES
+}
+
+enum ScrapedEventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommunityRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  website      String?
+  address      String?
+  zip          String?
+  city         String?
+  phone        String?
+  companyName  String?
+  isPartner       Boolean  @default(false)
+  isAdmin         Boolean  @default(false)
+  promotionTokens Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  events              Event[]
+  scrapedEvents       ScrapedEvent[]
+  monitoredUrls       MonitoredUrl[]
+  artistReviews       ArtistReview[]
+  artistFollows       ArtistFollow[]
+  favorites           EventFavorite[]
+  communityMembers    CommunityMember[]
+  eventComments       EventComment[]
+  eventAttendances    EventAttendee[]
+}
+
+model Event {
+  id               String        @id @default(cuid())
+  title            String
+  shortDescription String
+  description      String
+  category         EventCategory
+  startsAt         DateTime
+  endsAt           DateTime?
+  address          String
+  city             String
+  country          String
+  imageUrl         String?
+  heroVideoUrl     String?
+  ticketUrl        String?
+  price            String?
+  tags             String[]  @default([])
+  community        String?
+  isFeatured       Boolean   @default(false)
+  heroFocusY       Int       @default(50)
+  isPromoted       Boolean   @default(false)
+  promotedAt       DateTime?
+
+  organizerId String
+  organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  communityId  String?
+  communityRef Community?    @relation(fields: [communityId], references: [id], onDelete: SetNull)
+
+  artists      EventArtist[]
+  views        EventView[]
+  ticketClicks EventTicketClick[]
+  favorites    EventFavorite[]
+  comments     EventComment[]
+  attendees    EventAttendee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([startsAt])
+  @@index([city])
+  @@index([communityId])
+}
+
+model Artist {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  bio        String   @default("")
+  imageUrl        String?
+  headerImageUrl  String?
+  genre      String   @default("")
+  hometown   String   @default("")
+  tags       String[] @default([])
+  website    String?
+  instagram  String?
+  spotify    String?
+  youtube    String?
+  tiktok     String?
+  facebook   String?
+  soundcloud String?
+  bandcamp   String?
+  pressQuote String   @default("")
+
+  events    EventArtist[]
+  reviews   ArtistReview[]
+  followers ArtistFollow[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventArtist {
+  id       String @id @default(cuid())
+  eventId  String
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, artistId])
+  @@index([eventId])
+  @@index([artistId])
+}
+
+model ArtistReview {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String   @default("")
+
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([artistId, userId])
+  @@index([artistId])
+  @@index([userId])
+}
+
+model ArtistFollow {
+  id        String   @id @default(cuid())
+
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([artistId, userId])
+  @@index([artistId])
+  @@index([userId])
+}
+
+model MonitoredUrl {
+  id          String   @id @default(cuid())
+  url         String
+  label       String   @default("")
+  isActive    Boolean  @default(true)
+  isGlobal    Boolean  @default(false)
+  defaultCategory EventCategory?
+  defaultCity String?
+  lastScrapedAt DateTime?
+  lastEventCount Int    @default(0)
+  errorCount  Int      @default(0)
+  lastError   String?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([isGlobal])
+}
+
+model ScrapedEvent {
+  id               String             @id @default(cuid())
+  sourceUrl        String
+  title            String
+  shortDescription String             @default("")
+  description      String             @default("")
+  category         EventCategory      @default(SONSTIGES)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  address          String             @default("")
+  city             String             @default("")
+  country          String             @default("DE")
+  imageUrl         String?
+  ticketUrl        String?
+  price            String?
+  tags             String[]           @default([])
+  status           ScrapedEventStatus @default(PENDING)
+  rawHtml          String?            @default("")
+
+  organizerId String
+  organizer   User @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+model EventView {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([createdAt])
+}
+
+model EventTicketClick {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([createdAt])
+}
+
+model EventFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+}
+
+// ─── Community System ─────────────────────────────────────────────────────────
+
+model Community {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  shortDescription String @default("")
+  imageUrl    String?
+  bannerUrl   String?
+  country     String?
+  flagCode    String?
+  flagUrl     String?
+  language    String?
+  isActive       Boolean  @default(true)
+  showOnHomepage Boolean  @default(false)
+
+  // Location & Contact
+  city        String?
+  region      String?
+  timezone    String?
+  contactEmail String?
+  website     String?
+  phone       String?
+
+  // Social Links (stored as JSON string)
+  instagram   String?
+  facebook    String?
+  twitter     String?
+  linkedin    String?
+  youtube     String?
+  discord     String?
+  telegram    String?
+  tiktok      String?
+
+  // Community Settings
+  category    String?
+  tags        String[] @default([])
+  visibility  String   @default("PUBLIC")
+  rules       String   @default("")
+  welcomeMessage String @default("")
+  maxMembers  Int?
+  color       String?
+
+  members     CommunityMember[]
+  inviteCodes CommunityInviteCode[]
+  events      Event[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([category])
+  @@index([city])
+}
+
+model CommunityMember {
+  id          String        @id @default(cuid())
+  role        CommunityRole @default(MEMBER)
+
+  communityId String
+  community   Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt    DateTime      @default(now())
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@index([role])
+}
+
+model CommunityInviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  label       String    @default("")
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  @@index([code])
+  @@index([communityId])
+}
+
+// ─── Site Settings (Key-Value) ────────────────────────────────────────────────
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Event Comments ───────────────────────────────────────────────────────────
+
+model EventComment {
+  id        String   @id @default(cuid())
+  text      String
+  
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentId  String?
+  parent    EventComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   EventComment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+// ─── Admin-managed Category Cards ─────────────────────────────────────────────
+
+model CategoryItem {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  eventCategory String?
+  imageUrl    String?
+  iconUrl     String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  showOnHomepage Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Event Attendance ("Ich gehe hin") ────────────────────────────────────────
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}

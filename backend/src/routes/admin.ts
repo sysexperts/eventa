@@ -557,10 +557,108 @@ adminRouter.get("/events", requireAuth, requireAdmin, async (_req, res) => {
       startsAt: true,
       isFeatured: true,
       isPromoted: true,
+      isBlocked: true,
       createdAt: true,
       organizer: { select: { id: true, name: true } },
       _count: { select: { views: true, ticketClicks: true } },
     },
   });
   res.json({ events });
+});
+
+// ═══════════════════ USER MANAGEMENT ═══════════════════
+
+// Ban/Unban a user
+adminRouter.patch("/users/:id/ban", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { isBanned } = req.body;
+
+  if (typeof isBanned !== "boolean") {
+    return res.status(400).json({ error: "isBanned muss ein Boolean sein." });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return res.status(404).json({ error: "User nicht gefunden." });
+
+  // Prevent banning other admins
+  if (user.isAdmin) {
+    return res.status(403).json({ error: "Administratoren können nicht gesperrt werden." });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { isBanned },
+    select: { id: true, email: true, name: true, isBanned: true },
+  });
+
+  res.json({ user: updated, message: isBanned ? "User wurde gesperrt." : "User wurde entsperrt." });
+});
+
+// Delete a user (and all their events via CASCADE)
+adminRouter.delete("/users/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const adminUserId = (req as AuthenticatedRequest).userId;
+
+  // Prevent self-deletion
+  if (id === adminUserId) {
+    return res.status(403).json({ error: "Du kannst dich nicht selbst löschen." });
+  }
+
+  const user = await prisma.user.findUnique({ 
+    where: { id },
+    select: { isAdmin: true, _count: { select: { events: true } } }
+  });
+  
+  if (!user) return res.status(404).json({ error: "User nicht gefunden." });
+
+  // Prevent deleting other admins
+  if (user.isAdmin) {
+    return res.status(403).json({ error: "Administratoren können nicht gelöscht werden." });
+  }
+
+  const eventCount = user._count.events;
+
+  // Delete user (CASCADE will delete all related events, scrapedEvents, monitoredUrls, etc.)
+  await prisma.user.delete({ where: { id } });
+
+  res.json({ 
+    message: `User wurde gelöscht. ${eventCount} Event(s) wurden ebenfalls gelöscht.`,
+    deletedEventsCount: eventCount
+  });
+});
+
+// ═══════════════════ EVENT MANAGEMENT ═══════════════════
+
+// Block/Unblock an event
+adminRouter.patch("/events/:id/block", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { isBlocked } = req.body;
+
+  if (typeof isBlocked !== "boolean") {
+    return res.status(400).json({ error: "isBlocked muss ein Boolean sein." });
+  }
+
+  const event = await prisma.event.findUnique({ where: { id } });
+  if (!event) return res.status(404).json({ error: "Event nicht gefunden." });
+
+  const updated = await prisma.event.update({
+    where: { id },
+    data: { isBlocked },
+    select: { id: true, title: true, isBlocked: true },
+  });
+
+  res.json({ event: updated, message: isBlocked ? "Event wurde blockiert." : "Event wurde freigegeben." });
+});
+
+// Delete an event
+adminRouter.delete("/events/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  const event = await prisma.event.findUnique({ where: { id }, select: { title: true } });
+  if (!event) return res.status(404).json({ error: "Event nicht gefunden." });
+
+  // Delete event (CASCADE will delete all related views, ticketClicks, favorites, comments, etc.)
+  await prisma.event.delete({ where: { id } });
+
+  res.json({ message: `Event "${event.title}" wurde gelöscht.` });
 });

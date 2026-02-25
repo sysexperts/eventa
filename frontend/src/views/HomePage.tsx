@@ -452,10 +452,10 @@ function HeroSection({ featured, searchQuery, setSearchQuery, onSearch, navigate
 
           {/* Headline with stagger animation */}
           <h1 className="animate-slide-up text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
-            <span className={heroGradientLine === "1" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
+            <span className={heroGradientLine === "1" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-cyan to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
               {heroLine1}
             </span>
-            <span className={heroGradientLine === "2" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-purple to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "mt-2 block drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
+            <span className={heroGradientLine === "2" ? "mt-2 block bg-gradient-to-r from-accent-300 via-neon-cyan to-accent-400 bg-[length:200%_auto] bg-clip-text text-transparent animate-text-shimmer drop-shadow-lg" : "mt-2 block drop-shadow-[0_4px_32px_rgba(51,102,255,0.15)]"}>
               {heroLine2}
             </span>
           </h1>

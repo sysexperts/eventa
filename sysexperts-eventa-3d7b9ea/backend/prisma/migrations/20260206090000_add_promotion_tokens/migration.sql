@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "promotionTokens" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Event" ADD COLUMN "isPromoted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Event" ADD COLUMN "promotedAt" TIMESTAMP(3);
