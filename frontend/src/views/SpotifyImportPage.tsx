@@ -59,18 +59,7 @@ export function SpotifyImportPage() {
     setSelected(new Set());
 
     try {
-      const response = await fetch("/api/artists/search-spotify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ query, limit }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Suche fehlgeschlagen");
-      }
-
-      const data = await response.json();
+      const data = await api.post("/artists/search-spotify", { query, limit });
       setResults(data.artists || []);
       
       if (data.artists.length === 0) {
