@@ -94,7 +94,7 @@ enum CommunityRole {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   name         String
   website      String?
   address      String?
@@ -118,6 +118,10 @@ model User {
   lastLoginAt              DateTime?
   loginAttempts            Int       @default(0)
   lockedUntil              DateTime?
+  
+  googleId                 String?   @unique
+  oauthProvider            String?
+  oauthAccessToken         String?
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

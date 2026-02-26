@@ -17,26 +17,29 @@ class EmailService {
   }
 
   private initialize() {
-    const apiKey = process.env.SENDGRID_API_KEY;
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
     
-    if (!apiKey) {
-      console.warn("⚠️  SENDGRID_API_KEY not configured. Email functionality disabled.");
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      console.warn("⚠️  SMTP credentials not configured. Email functionality disabled.");
       return;
     }
 
     try {
       this.transporter = nodemailer.createTransport({
-        host: "smtp.sendgrid.net",
-        port: 587,
-        secure: false, // TLS
+        host: smtpHost,
+        port: parseInt(smtpPort || "465"),
+        secure: true, // SSL
         auth: {
-          user: "apikey",
-          pass: apiKey,
+          user: smtpUser,
+          pass: smtpPass,
         },
       });
 
       this.isConfigured = true;
-      console.log("✅ Email service configured with SendGrid");
+      console.log(`✅ Email service configured with ${smtpHost}`);
     } catch (error) {
       console.error("❌ Failed to configure email service:", error);
     }
@@ -49,8 +52,8 @@ class EmailService {
     }
 
     try {
-      const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@omekan.com";
-      const fromName = process.env.SENDGRID_FROM_NAME || "Omekan Events";
+      const fromEmail = process.env.SMTP_USER || "noreply@events.sys-experts.de";
+      const fromName = process.env.SMTP_FROM_NAME || "Omekan Events";
 
       await this.transporter.sendMail({
         from: `"${fromName}" <${fromEmail}>`,

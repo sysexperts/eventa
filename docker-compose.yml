@@ -72,6 +72,19 @@ services:
       
       # CORS & Frontend
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      
+      # Email Service (SMTP)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Omekan Events}
+      
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:4000}
       
       # Optional: Spotify Integration
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}

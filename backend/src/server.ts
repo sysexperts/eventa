@@ -6,9 +6,11 @@ import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
+import passport from "passport";
 
 import { authRouter } from "./routes/auth.js";
 import { authExtendedRouter } from "./routes/auth-extended.js";
+import { authGoogleRouter } from "./routes/auth-google.js";
 import { eventsRouter } from "./routes/events.js";
 import { meRouter } from "./routes/me.js";
 import { scrapeRouter } from "./routes/scrape.js";
@@ -20,6 +22,8 @@ import { commentsRouter } from "./routes/comments.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { statsRouter } from "./routes/stats.js";
 import { startCronjob } from "./services/cronjob.js";
+import { emailService } from "./services/email.js";
+import { configurePassport } from "./config/passport.js";
 import rateLimit from "express-rate-limit";
 
 const app = express();
@@ -37,6 +41,10 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// Initialize Passport
+app.use(passport.initialize());
+configurePassport();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -65,6 +73,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/auth", authLimiter, authExtendedRouter);
+app.use("/api/auth", authLimiter, authGoogleRouter);
 app.use("/api/events", apiLimiter, eventsRouter);
 app.use("/api/me", apiLimiter, meRouter);
 app.use("/api/scrape", apiLimiter, scrapeRouter);
