@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../state/auth";
 import { Input, Button, Label } from "../ui/components";
-import { User, Mail, Globe, Phone, Building2, MapPin, Lock, Shield, Calendar, Ticket } from "lucide-react";
+import { User, Mail, Globe, Phone, Building2, MapPin, Lock, Shield, Calendar, Ticket, Upload } from "lucide-react";
 
 export function ProfilePage() {
   const { user, refresh } = useAuth();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -45,6 +47,21 @@ export function ProfilePage() {
 
   function set(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleAvatarUpload(file: File) {
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      await api.me.uploadAvatar(file);
+      await refresh();
+      setMsg("Profilbild aktualisiert.");
+      setTimeout(() => setMsg(""), 3000);
+    } catch {
+      setError("Profilbild-Upload fehlgeschlagen.");
+    } finally {
+      setAvatarUploading(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -103,10 +120,39 @@ export function ProfilePage() {
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-surface-900 p-6 sm:p-8">
         <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-accent-500/10 blur-3xl" />
         
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-          {/* Avatar */}
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-accent-500/20 text-3xl font-bold text-accent-400 ring-4 ring-accent-500/10">
-            {initials}
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start">
+          {/* Avatar with Upload Button */}
+          <div className="flex flex-col items-start gap-3">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover ring-4 ring-accent-500/30"
+              />
+            ) : (
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-accent-500/20 text-3xl font-bold text-accent-400 ring-4 ring-accent-500/10">
+                {initials}
+              </div>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500/20 px-3 py-1.5 text-xs font-medium text-accent-300 hover:bg-accent-500/30 disabled:opacity-50 transition-colors"
+            >
+              <Upload className="h-3 w-3" />
+              {avatarUploading ? "Lädt..." : "Foto ändern"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleAvatarUpload(file);
+                e.target.value = "";
+              }}
+            />
           </div>
           
           {/* Identity Info */}

@@ -6,7 +6,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(!(init?.body instanceof FormData) && { "Content-Type": "application/json" }),
       ...(init?.headers || {})
     },
     credentials: "include"
@@ -36,6 +36,7 @@ export type User = {
   city?: string | null;
   phone?: string | null;
   companyName?: string | null;
+  avatarUrl?: string | null;
   isPartner: boolean;
   isAdmin: boolean;
   promotionTokens: number;
@@ -337,6 +338,15 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data)
       }),
+    uploadAvatar: (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      return request<{ user: User }>("/api/me/avatar", {
+        method: "POST",
+        body: formData as any,
+        headers: {} // Let fetch set Content-Type for FormData
+      });
+    },
   },
   events: {
     list: (params: { category?: string; city?: string; from?: string; to?: string; q?: string; community?: string }) => {

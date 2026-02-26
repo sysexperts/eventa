@@ -8,6 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { authRouter } from "./routes/auth.js";
+import { authExtendedRouter } from "./routes/auth-extended.js";
 import { eventsRouter } from "./routes/events.js";
 import { meRouter } from "./routes/me.js";
 import { scrapeRouter } from "./routes/scrape.js";
@@ -63,6 +64,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/auth", authLimiter, authExtendedRouter);
 app.use("/api/events", apiLimiter, eventsRouter);
 app.use("/api/me", apiLimiter, meRouter);
 app.use("/api/scrape", apiLimiter, scrapeRouter);

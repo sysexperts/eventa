@@ -1,13 +1,43 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
 import { prisma } from "../db.js";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { updateMeSchema, changePasswordSchema } from "../validation/me.js";
 
 export const meRouter = Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure multer for avatar uploads
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, path.join(__dirname, "..", "..", "uploads", "avatars"));
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Nur JPEG, PNG und WebP erlaubt"));
+    }
+  },
+});
+
 const USER_SELECT = {
-  id: true, email: true, name: true, website: true,
+  id: true, email: true, name: true, website: true, avatarUrl: true,
   address: true, zip: true, city: true, phone: true, companyName: true,
   isPartner: true, isAdmin: true, promotionTokens: true,
   createdAt: true, updatedAt: true,
@@ -65,4 +95,22 @@ meRouter.put("/password", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
 
   return res.json({ message: "Passwort erfolgreich geändert." });
+});
+
+meRouter.post("/avatar", requireAuth, avatarUpload.single("avatar"), async (req, res) => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  if (!req.file) {
+    return res.status(400).json({ error: "Datei erforderlich" });
+  }
+
+  // Save avatar URL to database
+  const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl },
+    select: USER_SELECT,
+  });
+
+  return res.json({ user: updated });
 });

@@ -1,80 +1,207 @@
+version: '3.9'
+
 services:
+  # ─────────────────────────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: local-events-db
+    
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-local_events}
+      # Performance-Tuning für kleine Server
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=100"
+    
     ports:
       - "5432:5432"
+    
     volumes:
+      # Persistente Datenbank (WICHTIG: nicht mit -v löschen!)
       - db_data:/var/lib/postgresql/data
+      # Optional: Backup-Verzeichnis
+      - ./backups:/backups
+    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-local_events}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 20
-    restart: always
+      retries: 5
+      start_period: 10s
+    
+    restart: unless-stopped
+    
+    networks:
+      - local-events-network
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ─────────────────────────────────────────────────────────────
+  # Backend API (Node.js/Express)
+  # ─────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    
     container_name: local-events-backend
+    
     environment:
-      NODE_ENV: production
+      # App Config
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 4000
+      
+      # Database
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-local_events}
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-local_events}?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      COOKIE_SECURE: "true"
-      CORS_ORIGIN: http://localhost:5173
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      
+      # Security
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_THIS_SECRET_IN_PRODUCTION}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      
+      # CORS & Frontend
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      
+      # Optional: Spotify Integration
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+    
     depends_on:
       db:
         condition: service_healthy
+    
     ports:
       - "4000:4000"
+    
     volumes:
+      # Uploads-Verzeichnis
       - uploads_data:/app/uploads
-    restart: always
+    
+    restart: unless-stopped
+    
+    networks:
+      - local-events-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ─────────────────────────────────────────────────────────────
+  # Frontend (React/Vite)
+  # ─────────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    
     container_name: local-events-frontend
+    
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    
     ports:
       - "5173:5173"
-    restart: always
+    
+    restart: unless-stopped
+    
+    networks:
+      - local-events-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ─────────────────────────────────────────────────────────────
+  # Automatic Database Backup Service
+  # ─────────────────────────────────────────────────────────────
   backup:
     image: postgres:16-alpine
     container_name: local-events-backup
+    
     environment:
       PGPASSWORD: ${DB_PASSWORD:-postgres}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    
     volumes:
       - ./backups:/backups
-    entrypoint: >
-      sh -c "while true; do
-        pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql &&
-        echo \"Backup OK: $$(date)\" &&
-        find /backups -name '*.sql' -mtime +7 -delete;
-        sleep 86400;
-      done"
+      - ./backup-script.sh:/backup-script.sh:ro
+    
+    entrypoint: /bin/sh
+    
+    command: >
+      -c "
+        echo 'Backup service started...' &&
+        while true; do
+          BACKUP_FILE=/backups/backup_\$(date +\%Y\%m\%d_\%H\%M\%S).sql &&
+          echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Starting backup...\" &&
+          
+          if pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > \"\$BACKUP_FILE\" 2>/backups/backup.log; then
+            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Backup successful: \$BACKUP_FILE\" &&
+            gzip \"\$BACKUP_FILE\" &&
+            find /backups -name 'backup_*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS:-7} -delete &&
+            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Old backups cleaned up\"
+          else
+            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Backup failed!\" >> /backups/backup.log
+          fi &&
+          sleep 86400
+        done
+      "
+    
     depends_on:
       db:
         condition: service_healthy
-    restart: always
+    
+    restart: unless-stopped
+    
+    networks:
+      - local-events-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+# ─────────────────────────────────────────────────────────────
+# Volumes (persistente Speicher)
+# ─────────────────────────────────────────────────────────────
 volumes:
   db_data:
+    driver: local
   uploads_data:
+    driver: local
+
+# ─────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────
+networks:
+  local-events-network:
+    driver: bridge

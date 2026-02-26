@@ -102,10 +102,23 @@ model User {
   city         String?
   phone        String?
   companyName  String?
+  avatarUrl    String?
   isPartner       Boolean  @default(false)
   isAdmin         Boolean  @default(false)
   isBanned        Boolean  @default(false)
   promotionTokens Int      @default(0)
+  
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationExpiry  DateTime?
+  
+  passwordResetToken       String?   @unique
+  passwordResetExpiry      DateTime?
+  
+  lastLoginAt              DateTime?
+  loginAttempts            Int       @default(0)
+  lockedUntil              DateTime?
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

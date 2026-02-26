@@ -1,8 +1,112 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/auth";
+import { api, type User } from "../lib/api";
 import { AuthModal } from "./AuthModal";
 import { CookieBanner } from "./CookieBanner";
+
+function UserDropdown({ user, refresh, logout, navigate }: { user: User; refresh: () => Promise<void>; logout: () => Promise<void>; navigate: ReturnType<typeof useNavigate> }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      await api.me.uploadAvatar(file);
+      await refresh();
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const renderAvatar = () => {
+    if (user.avatarUrl) {
+      return (
+        <img
+          src={user.avatarUrl}
+          alt={user.name}
+          className="h-8 w-8 rounded-full object-cover ring-2 ring-accent-500/20 transition-all duration-300 group-hover:ring-accent-500/40"
+        />
+      );
+    }
+    return (
+      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent-400/30 to-accent-600/20 text-xs font-bold text-accent-300 ring-2 ring-accent-500/20 transition-all duration-300 group-hover:ring-accent-500/40 group-hover:shadow-lg group-hover:shadow-accent-500/10">
+        {user.name?.charAt(0).toUpperCase() || "U"}
+      </div>
+    );
+  };
+
+  return (
+    <div className="group relative flex items-center gap-3">
+      <div className="flex items-center gap-2.5 cursor-pointer">
+        {renderAvatar()}
+        <span className="text-sm font-medium text-surface-300 group-hover:text-white transition-colors duration-200">{user.name}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-surface-500 group-hover:text-white transition-all duration-200 group-hover:translate-y-0.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      {/* Hover dropdown */}
+      <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute right-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-surface-900 py-2 shadow-xl shadow-black/30">
+        {/* Avatar Preview and Upload */}
+        <div className="px-4 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            {renderAvatar()}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+              <p className="text-xs text-surface-500">{user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="mt-2 w-full rounded-lg bg-accent-500/20 px-3 py-1.5 text-xs font-medium text-accent-300 hover:bg-accent-500/30 disabled:opacity-50 transition-colors"
+          >
+            {uploading ? "Lädt..." : "Profilbild ändern"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleAvatarUpload(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2 text-sm text-surface-300 hover:text-white hover:bg-white/5 transition-colors">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profil
+        </Link>
+        {user?.isAdmin && (
+          <>
+            <div className="my-1 border-t border-white/[0.06]"/>
+            <Link to="/admin" className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Admin-Bereich
+            </Link>
+            <Link to="/admin/spotify-import" className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              Spotify Import
+            </Link>
+          </>
+        )}
+        <div className="my-1 border-t border-white/[0.06]"/>
+        <button
+          className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-surface-400 hover:text-neon-pink hover:bg-white/5 transition-colors"
+          onClick={async () => { await logout(); navigate("/"); }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Abmelden
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
@@ -77,7 +181,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, logout, openLogin, openRegister } = useAuth();
+  const { user, logout, openLogin, openRegister, refresh } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -121,43 +225,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Auth buttons - desktop */}
             <div className="hidden lg:flex items-center gap-3">
               {user ? (
-                <div className="group relative flex items-center gap-3">
-                  <div className="flex items-center gap-2.5 cursor-pointer">
-                    <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent-400/30 to-accent-600/20 text-xs font-bold text-accent-300 ring-2 ring-accent-500/20 transition-all duration-300 group-hover:ring-accent-500/40 group-hover:shadow-lg group-hover:shadow-accent-500/10">
-                      {user.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <span className="text-sm font-medium text-surface-300 group-hover:text-white transition-colors duration-200">{user.name}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-surface-500 group-hover:text-white transition-all duration-200 group-hover:translate-y-0.5"><polyline points="6 9 12 15 18 9"/></svg>
-                  </div>
-                  {/* Hover dropdown */}
-                  <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute right-0 top-full mt-2 w-52 rounded-xl border border-white/10 bg-surface-900 py-1.5 shadow-xl shadow-black/30">
-                    <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2 text-sm text-surface-300 hover:text-white hover:bg-white/5 transition-colors">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      Profil
-                    </Link>
-                    {user?.isAdmin && (
-                      <>
-                        <div className="my-1 border-t border-white/[0.06]"/>
-                        <Link to="/admin" className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                          Admin-Bereich
-                        </Link>
-                        <Link to="/admin/spotify-import" className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-                          Spotify Import
-                        </Link>
-                      </>
-                    )}
-                    <div className="my-1 border-t border-white/[0.06]"/>
-                    <button
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-surface-400 hover:text-neon-pink hover:bg-white/5 transition-colors"
-                      onClick={async () => { await logout(); navigate("/"); }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                      Abmelden
-                    </button>
-                  </div>
-                </div>
+                <UserDropdown user={user} refresh={refresh} logout={logout} navigate={navigate} />
               ) : (
                 <>
                   <button onClick={openLogin} className="rounded-full px-4 py-1.5 text-[13px] font-medium text-surface-400 transition-all duration-200 hover:text-white hover:bg-white/[0.06]">
