@@ -152,55 +152,55 @@ services:
         max-file: "3"
 
   # ─────────────────────────────────────────────────────────────
-  # Automatic Database Backup Service
+  # Automatic Database Backup Service (DISABLED - causing restart issues)
   # ─────────────────────────────────────────────────────────────
-  backup:
-    image: postgres:16-alpine
-    container_name: local-events-backup
-    
-    environment:
-      PGPASSWORD: ${DB_PASSWORD:-postgres}
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
-    
-    volumes:
-      - ./backups:/backups
-      - ./backup-script.sh:/backup-script.sh:ro
-    
-    entrypoint: /bin/sh
-    
-    command: >
-      -c "
-        echo 'Backup service started...' &&
-        while true; do
-          BACKUP_FILE=/backups/backup_$$(date +%Y%m%d_%H%M%S).sql &&
-          echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Starting backup...\" &&
-          
-          if pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > \"$$BACKUP_FILE\" 2>/backups/backup.log; then
-            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup successful: $$BACKUP_FILE\" &&
-            gzip \"$$BACKUP_FILE\" &&
-            find /backups -name 'backup_*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS:-7} -delete &&
-            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Old backups cleaned up\"
-          else
-            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup failed!\" >> /backups/backup.log
-          fi &&
-          sleep 86400
-        done
-      "
-    
-    depends_on:
-      db:
-        condition: service_healthy
-    
-    restart: unless-stopped
-    
-    networks:
-      - local-events-network
-    
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # backup:
+  #   image: postgres:16-alpine
+  #   container_name: local-events-backup
+  #   
+  #   environment:
+  #     PGPASSWORD: ${DB_PASSWORD:-postgres}
+  #     BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+  #   
+  #   volumes:
+  #     - ./backups:/backups
+  #     - ./backup-script.sh:/backup-script.sh:ro
+  #   
+  #   entrypoint: /bin/sh
+  #   
+  #   command: >
+  #     -c "
+  #       echo 'Backup service started...' &&
+  #       while true; do
+  #         BACKUP_FILE=/backups/backup_$$(date +%Y%m%d_%H%M%S).sql &&
+  #         echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Starting backup...\" &&
+  #         
+  #         if pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > \"$$BACKUP_FILE\" 2>/backups/backup.log; then
+  #           echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup successful: $$BACKUP_FILE\" &&
+  #           gzip \"$$BACKUP_FILE\" &&
+  #           find /backups -name 'backup_*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS:-7} -delete &&
+  #           echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Old backups cleaned up\"
+  #         else
+  #           echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup failed!\" >> /backups/backup.log
+  #         fi &&
+  #         sleep 86400
+  #       done
+  #     "
+  #   
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   
+  #   restart: unless-stopped
+  #   
+  #   networks:
+  #     - local-events-network
+  #   
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
 # ─────────────────────────────────────────────────────────────
 # Volumes (persistente Speicher)
