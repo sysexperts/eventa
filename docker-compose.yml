@@ -173,16 +173,16 @@ services:
       -c "
         echo 'Backup service started...' &&
         while true; do
-          BACKUP_FILE=/backups/backup_\$(date +\%Y\%m\%d_\%H\%M\%S).sql &&
-          echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Starting backup...\" &&
+          BACKUP_FILE=/backups/backup_$$(date +%Y%m%d_%H%M%S).sql &&
+          echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Starting backup...\" &&
           
-          if pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > \"\$BACKUP_FILE\" 2>/backups/backup.log; then
-            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Backup successful: \$BACKUP_FILE\" &&
-            gzip \"\$BACKUP_FILE\" &&
+          if pg_dump -h db -U ${DB_USER:-postgres} ${DB_NAME:-local_events} > \"$$BACKUP_FILE\" 2>/backups/backup.log; then
+            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup successful: $$BACKUP_FILE\" &&
+            gzip \"$$BACKUP_FILE\" &&
             find /backups -name 'backup_*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS:-7} -delete &&
-            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Old backups cleaned up\"
+            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Old backups cleaned up\"
           else
-            echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Backup failed!\" >> /backups/backup.log
+            echo \"[$$(date '+%Y-%m-%d %H:%M:%S')] Backup failed!\" >> /backups/backup.log
           fi &&
           sleep 86400
         done
