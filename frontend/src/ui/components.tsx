@@ -35,6 +35,6 @@ export function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-sm">{children}</div>;
 }
 
-export function Label({ children }: { children: React.ReactNode }) {
-  return <div className="mb-1.5 text-xs font-medium text-surface-400">{children}</div>;
+export function Label({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={`mb-1.5 text-xs font-medium text-surface-400 ${className || ""}`}>{children}</div>;
 }
