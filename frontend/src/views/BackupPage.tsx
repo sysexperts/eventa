@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../state/auth";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
+import { api } from "../lib/api";
 
 export function BackupPage() {
   const { user } = useAuth();
