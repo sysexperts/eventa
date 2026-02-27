@@ -10,6 +10,7 @@ import { EventFormPage } from "../views/EventFormPage";
 import { AdminPage } from "../views/AdminPage";
 import { ArtistsAdminPage } from "../views/ArtistsAdminPage";
 import { SpotifyImportPage } from "../views/SpotifyImportPage";
+import { BackupPage } from "../views/BackupPage";
 import { ArtistsPage } from "../views/ArtistsPage";
 import { ArtistProfilePage } from "../views/ArtistProfilePage";
 import { CommunityPage } from "../views/CommunityPage";
@@ -109,6 +110,14 @@ export function App() {
           element={
             <RequireAuth>
               <SpotifyImportPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/backup"
+          element={
+            <RequireAuth>
+              <BackupPage />
             </RequireAuth>
           }
         />

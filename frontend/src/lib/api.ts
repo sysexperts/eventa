@@ -548,6 +548,25 @@ export const api = {
     deleteReview: (slug: string) =>
       request<void>(`/api/artists/${slug}/reviews`, { method: "DELETE" }),
   },
+  backup: {
+    createBackup: async (): Promise<Blob> => {
+      const res = await fetch(`${API_URL}/api/backup/create`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Backup fehlgeschlagen");
+      return res.blob();
+    },
+    listBackups: () =>
+      request<{ backups: Array<{ filename: string; size: number; created: string }> }>("/api/backup/list"),
+    restoreBackup: (backupData: string) =>
+      request<{ message: string }>("/api/backup/restore", {
+        method: "POST",
+        body: JSON.stringify({ backupData }),
+      }),
+    getStats: () =>
+      request<{ users: number; events: number; communities: number; categories: number; totalRecords: number }>("/api/backup/stats"),
+  },
   categories: {
     list: () => request<{ categories: CategoryItem[] }>("/api/categories"),
   },

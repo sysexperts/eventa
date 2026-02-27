@@ -21,6 +21,7 @@ import { communitiesRouter } from "./routes/communities.js";
 import { commentsRouter } from "./routes/comments.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { statsRouter } from "./routes/stats.js";
+import backupRouter from "./routes/backup.js";
 import { startCronjob } from "./services/cronjob.js";
 import { emailService } from "./services/email.js";
 import { configurePassport } from "./config/passport.js";
@@ -83,6 +84,7 @@ app.use("/api/artists", apiLimiter, artistsRouter);
 app.use("/api/communities", apiLimiter, communitiesRouter);
 app.use("/api/categories", apiLimiter, categoriesRouter);
 app.use("/api/stats", apiLimiter, statsRouter);
+app.use("/api/backup", apiLimiter, backupRouter);
 app.use("/api", apiLimiter, commentsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
