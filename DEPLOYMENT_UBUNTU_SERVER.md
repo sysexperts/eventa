@@ -320,11 +320,21 @@ sudo certbot renew --dry-run
 
 ## 🚀 **TEIL 6: Docker Container starten**
 
-### 6.1 Docker Compose Build
+### 6.1 Repository klonen (falls noch nicht geschehen)
 
 ```
 cd /var/www/events
 
+# Repository von GitHub klonen
+git clone https://github.com/sysexperts/eventa.git .
+
+# Prüfen ob alles da ist
+ls -la
+```
+
+### 6.2 Docker Compose Build
+
+```
 # Container bauen und starten
 sudo docker compose up -d --build
 
@@ -340,7 +350,7 @@ Backend listening on http://0.0.0.0:4000
 
 `Strg+C` zum Beenden der Logs
 
-### 6.2 Container Status prüfen
+### 6.3 Container Status prüfen
 
 ```
 # Alle Container sollten "Up" sein
@@ -353,7 +363,7 @@ sudo docker compose ps
 # local-events-backup    Up
 ```
 
-### 6.3 Datenbank Migration
+### 6.4 Datenbank Migration
 
 ```
 # Migration sollte automatisch laufen, falls nicht:
