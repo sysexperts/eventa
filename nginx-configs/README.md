@@ -11,7 +11,7 @@ Diese Nginx-Konfigurationen sind Templates für das Production-Deployment.
 
 ### 1. Configs auf den Server kopieren
 
-```bash
+```
 # Frontend-Config
 sudo cp frontend.conf /etc/nginx/sites-available/deine-domain.de
 
@@ -21,7 +21,7 @@ sudo cp api.conf /etc/nginx/sites-available/api.deine-domain.de
 
 ### 2. Domain-Namen anpassen
 
-```bash
+```
 # Frontend-Config bearbeiten
 sudo nano /etc/nginx/sites-available/deine-domain.de
 
@@ -37,7 +37,7 @@ sudo nano /etc/nginx/sites-available/api.deine-domain.de
 
 ### 3. Symlinks erstellen
 
-```bash
+```
 # Frontend aktivieren
 sudo ln -s /etc/nginx/sites-available/deine-domain.de /etc/nginx/sites-enabled/
 
@@ -50,7 +50,7 @@ sudo rm /etc/nginx/sites-enabled/default
 
 ### 4. Nginx testen und neu laden
 
-```bash
+```
 # Konfiguration testen
 sudo nginx -t
 
@@ -62,7 +62,7 @@ sudo systemctl reload nginx
 
 Nach der Nginx-Konfiguration SSL-Zertifikate mit Certbot installieren:
 
-```bash
+```
 # Frontend-Domain
 sudo certbot --nginx -d deine-domain.de
 
@@ -92,7 +92,7 @@ Certbot wird die Configs automatisch anpassen und SSL aktivieren.
 
 ### Nginx startet nicht
 
-```bash
+```
 # Logs prüfen
 sudo tail -f /var/log/nginx/error.log
 
@@ -102,7 +102,7 @@ sudo nginx -t
 
 ### 502 Bad Gateway
 
-```bash
+```
 # Container-Status prüfen
 sudo docker compose ps
 
@@ -112,7 +112,7 @@ sudo docker compose logs backend
 
 ### SSL-Fehler
 
-```bash
+```
 # Certbot-Logs prüfen
 sudo tail -f /var/log/letsencrypt/letsencrypt.log
 
@@ -124,7 +124,7 @@ sudo certbot renew
 
 Prüfe ob `client_max_body_size 100M;` in der API-Config gesetzt ist:
 
-```bash
+```
 sudo cat /etc/nginx/sites-available/api.deine-domain.de | grep client_max_body_size
 ```
 

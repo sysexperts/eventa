@@ -17,7 +17,7 @@
 
 ## 1️⃣ Server vorbereiten
 
-```bash
+```
 # System aktualisieren
 sudo apt update && sudo apt upgrade -y
 
@@ -33,7 +33,7 @@ sudo ufw enable
 
 ## 2️⃣ Docker installieren
 
-```bash
+```
 # Docker installieren
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
@@ -48,7 +48,7 @@ docker compose version
 
 ## 3️⃣ Nginx installieren
 
-```bash
+```
 # Nginx installieren
 sudo apt install -y nginx
 
@@ -59,7 +59,7 @@ sudo systemctl start nginx
 
 ## 4️⃣ Projekt klonen
 
-```bash
+```
 # Projekt-Verzeichnis erstellen
 sudo mkdir -p /var/www/omekan
 cd /var/www/omekan
@@ -73,7 +73,7 @@ sudo chown -R $USER:$USER /var/www/omekan
 
 ## 5️⃣ Umgebungsvariablen konfigurieren
 
-```bash
+```
 cd /var/www/omekan
 
 # .env erstellen
@@ -83,7 +83,7 @@ nano .env
 
 **WICHTIG - Diese Werte anpassen:**
 
-```bash
+```
 # Database
 DB_PASSWORD=SICHERES-PASSWORT-HIER
 
@@ -120,7 +120,7 @@ GOOGLE_CLIENT_SECRET=deine-google-client-secret
 
 ## 6️⃣ Nginx konfigurieren
 
-```bash
+```
 # Frontend-Config kopieren
 sudo cp nginx-configs/frontend.conf /etc/nginx/sites-available/deine-domain.de
 
@@ -147,7 +147,7 @@ sudo systemctl reload nginx
 
 ## 7️⃣ SSL-Zertifikate installieren
 
-```bash
+```
 # Frontend-Domain
 sudo certbot --nginx -d deine-domain.de
 
@@ -160,7 +160,7 @@ sudo certbot renew --dry-run
 
 ## 8️⃣ Container starten
 
-```bash
+```
 cd /var/www/omekan
 
 # Container bauen und starten
@@ -177,7 +177,7 @@ sudo docker compose logs -f
 
 ## 9️⃣ Backend-Health-Check
 
-```bash
+```
 # Backend testen
 curl https://api.deine-domain.de/health
 
@@ -190,7 +190,7 @@ curl https://api.deine-domain.de/health
 2. **Registrieren:** Erstelle einen Account
 3. **Auf dem Server:**
 
-```bash
+```
 cd /var/www/omekan
 
 # Datenbank öffnen
@@ -224,7 +224,7 @@ SELECT email, "isAdmin" FROM users;
 
 ## 🔧 Nützliche Befehle
 
-```bash
+```
 # Logs anschauen
 sudo docker compose logs -f backend
 sudo docker compose logs -f frontend
@@ -261,7 +261,7 @@ cat backup.sql | sudo docker compose exec -T db psql -U postgres local_events
 ## 🆘 Probleme?
 
 ### Frontend zeigt 502 Bad Gateway
-```bash
+```
 # Backend-Logs prüfen
 sudo docker compose logs backend
 
@@ -270,7 +270,7 @@ sudo docker compose restart backend
 ```
 
 ### Video-Upload schlägt fehl
-```bash
+```
 # Nginx-Config prüfen
 sudo cat /etc/nginx/sites-available/api.deine-domain.de | grep client_max_body_size
 
@@ -278,7 +278,7 @@ sudo cat /etc/nginx/sites-available/api.deine-domain.de | grep client_max_body_s
 ```
 
 ### CORS-Fehler
-```bash
+```
 # .env prüfen
 cat .env | grep CORS_ORIGIN
 
@@ -286,7 +286,7 @@ cat .env | grep CORS_ORIGIN
 ```
 
 ### Datenbank-Verbindung fehlgeschlagen
-```bash
+```
 # Datenbank-Status
 sudo docker compose exec db pg_isready -U postgres
 

@@ -6,7 +6,7 @@ Nach dem Deployment diese Schritte durchführen, um sicherzustellen, dass alles 
 
 Auf dem Server in `/var/www/omekan/.env`:
 
-```bash
+```
 cd /var/www/omekan
 cat .env
 ```
@@ -25,7 +25,7 @@ cat .env
 
 ## ✅ 2. DNS-Records prüfen
 
-```bash
+```
 nslookup deine-domain.de
 nslookup api.deine-domain.de
 ```
@@ -37,7 +37,7 @@ nslookup api.deine-domain.de
 
 ## ✅ 3. SSL-Zertifikate installieren
 
-```bash
+```
 # Frontend-Domain
 sudo certbot --nginx -d deine-domain.de
 
@@ -54,7 +54,7 @@ sudo systemctl reload nginx
 
 ## ✅ 4. Container starten
 
-```bash
+```
 cd /var/www/omekan
 
 # Alle Container starten
@@ -72,7 +72,7 @@ sudo docker compose ps
 
 ## ✅ 5. Backend-Health-Check
 
-```bash
+```
 curl https://api.deine-domain.de/health
 ```
 
@@ -90,7 +90,7 @@ Im Browser: `https://deine-domain.de`
 
 ## ✅ 7. Admin-Benutzer erstellen
 
-```bash
+```
 cd /var/www/omekan
 
 # 1. Registriere dich über die Website
@@ -133,7 +133,7 @@ SELECT email, "isAdmin" FROM users;
 
 ## ✅ 9. Backup-Service prüfen
 
-```bash
+```
 # Backup-Logs anschauen
 sudo docker compose logs backup
 
@@ -147,7 +147,7 @@ ls -lh backups/
 
 ## ✅ 10. Logs prüfen
 
-```bash
+```
 # Alle Logs
 sudo docker compose logs --tail=50
 
@@ -191,14 +191,14 @@ Von verschiedenen Geräten testen:
 ## 🔧 Troubleshooting
 
 ### Frontend zeigt alte Daten
-```bash
+```
 # Browser-Cache leeren
 # Strg + Shift + R (Windows)
 # Cmd + Shift + R (Mac)
 ```
 
 ### Backend ist "unhealthy"
-```bash
+```
 # Logs prüfen
 sudo docker compose logs backend --tail=100
 
@@ -207,7 +207,7 @@ sudo docker compose restart backend
 ```
 
 ### Video-Upload schlägt fehl
-```bash
+```
 # Nginx-Config prüfen
 sudo cat /etc/nginx/sites-available/api.deine-domain.de | grep client_max_body_size
 
@@ -215,7 +215,7 @@ sudo cat /etc/nginx/sites-available/api.deine-domain.de | grep client_max_body_s
 ```
 
 ### Datenbank-Verbindung fehlgeschlagen
-```bash
+```
 # Datenbank-Status prüfen
 sudo docker compose exec db pg_isready -U postgres
 
