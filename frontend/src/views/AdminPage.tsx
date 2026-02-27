@@ -1847,6 +1847,31 @@ export function AdminPage() {
                       </div>
                     </div>
 
+                    {/* Delete User */}
+                    {!u.isAdmin && (
+                      <div className="pt-3 border-t border-white/[0.06]">
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Benutzer "${u.name || u.email}" wirklich löschen?\n\nAlle Events (${u._count.events}) werden ebenfalls gelöscht!`)) return;
+                            setBusy(u.id);
+                            try {
+                              const res = await api.admin.deleteUser(u.id);
+                              alert(res.message);
+                              await loadUsers();
+                            } catch (err: any) {
+                              alert(err.message || "Fehler beim Löschen.");
+                            } finally {
+                              setBusy(null);
+                            }
+                          }}
+                          disabled={busy === u.id}
+                          className="w-full rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+                        >
+                          🗑️ Benutzer löschen ({u._count.events} Events werden gelöscht)
+                        </button>
+                      </div>
+                    )}
+
                     {/* Info */}
                     <div className="text-[10px] text-surface-600">
                       Registriert: {new Date(u.createdAt).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
